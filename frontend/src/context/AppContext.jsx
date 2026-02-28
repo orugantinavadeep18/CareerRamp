@@ -4,10 +4,13 @@ import { playLoginSound, playAnalysisSound } from '../utils/sounds'
 
 const AppContext = createContext(null)
 
-// In dev: Vite proxy forwards /api → localhost:3001
-// In prod: VITE_API_URL points to the Render backend (e.g. https://careerRamp.onrender.com)
+// In dev: Vite proxy forwards /api → localhost:3001 (baseURL = '')
+// In prod: uses VITE_API_URL env var, falls back to hardcoded Render URL
+const BACKEND_URL = import.meta.env.VITE_API_URL ||
+  (import.meta.env.DEV ? '' : 'https://careerramp-1.onrender.com')
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '',
+  baseURL: BACKEND_URL,
 })
 
 // Register interceptor once at module level — always ready before any request
