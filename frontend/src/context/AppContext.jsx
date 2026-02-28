@@ -4,8 +4,11 @@ import { playLoginSound, playAnalysisSound } from '../utils/sounds'
 
 const AppContext = createContext(null)
 
-// axios base URL stays at /api via vite proxy
-const api = axios.create()
+// In dev: Vite proxy forwards /api → localhost:3001
+// In prod: VITE_API_URL points to the Render backend (e.g. https://careerRamp.onrender.com)
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || '',
+})
 
 // Register interceptor once at module level — always ready before any request
 api.interceptors.request.use(cfg => {
