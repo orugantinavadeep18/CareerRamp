@@ -99,9 +99,10 @@ app.get('/', (req, res) => {
 
 // Health check
 app.get('/api/health', (req, res) => {
+  const { MODELS } = require('./gemini')
   res.json({
     status: 'running',
-    engine: process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite',
+    engine: MODELS[0],
     version: '2.0.0',
     timestamp: new Date().toISOString(),
   });
@@ -118,7 +119,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error', message: err.message });
 });
 
-const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite'
+const { MODELS } = require('./gemini')
 
 // ── Connect MongoDB then start server ──
 mongoose.connect(process.env.MONGODB_URI)
@@ -128,20 +129,20 @@ mongoose.connect(process.env.MONGODB_URI)
 app.listen(PORT, async () => {
   console.log(`
 ╔═══════════════════════════════════════════════╗
-║   SkillForge AI Agent — Running on :${PORT}     ║
-║   Engine : ${MODEL.padEnd(32)}║
-║   Mode   : ${(process.env.NODE_ENV || 'development').padEnd(32)}║
+║   CareerRamp AI Backend — Running on :${PORT}    ║
+║   Models : ${MODELS.slice(0,2).join(', ').padEnd(32)}║
+║   Mode   : ${(process.env.NODE_ENV || 'production').padEnd(32)}║
 ╚═══════════════════════════════════════════════╝
   `);
 
-  // ── Startup model ping (uses fallback client) ──
+  // ── Startup model ping (tries all key×model combinations) ──
   try {
-    const { pingModel, MODEL: m } = require('./gemini')
+    const { pingModel, MODELS: mlist } = require('./gemini')
     const ms = await pingModel()
-    console.log(`  ✅ Model ping OK  (${ms} ms) — ${m}`)
+    console.log(`  ✅ Model ping OK  (${ms} ms)`)
   } catch (e) {
     console.error(`  ❌ Model ping FAILED — ${e.message.slice(0, 120)}`)
-    console.error('     Check GEMINI_API_KEY / GEMINI_API_KEY_2 in backend/.env')
+    console.error('     Check GEMINI_API_KEY values in Render Environment settings')
   }
 
   // ── Keep-alive: ping self every 14 min so Render free tier never sleeps ──
