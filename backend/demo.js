@@ -277,7 +277,7 @@ function chatFallback({ message = '', context = {} } = {}) {
   }
 
   // Default thoughtful response
-  return `${name}, that's a really thoughtful question about ${career}! The Indian job market in 2025 is changing fast — companies now value **demonstrable skills** over degrees for most tech and creative roles. My #1 advice: build something real this week, even a simple project using what you've learned so far. Consistency and visible output (GitHub, portfolio, LinkedIn posts) are what separate people who get hired from those who don't. What specific challenge are you facing right now — I can give you a more targeted answer!`
+  return `${name}, that's a really thoughtful question about ${career}! The Indian job market in 2026 is changing fast — companies now value **demonstrable skills** over degrees for most tech and creative roles. My #1 advice: build something real this week, even a simple project using what you've learned so far. Consistency and visible output (GitHub, portfolio, LinkedIn posts) are what separate people who get hired from those who don't. What specific challenge are you facing right now — I can give you a more targeted answer!`
 }
 
 function replanFallback({ career, completedSteps = [], totalSteps = 6, feedback = '' } = {}) {
