@@ -5,6 +5,7 @@
 const express = require('express')
 const router = express.Router()
 const { generateContent } = require('../gemini')
+const { chatFallback } = require('../demo')
 
 router.post('/', async (req, res) => {
   const { message, history = [], context } = req.body
@@ -40,11 +41,9 @@ CareerRamp AI:`
     const reply = await generateContent(prompt, { maxOutputTokens: 512, temperature: 0.7 })
     return res.json({ success: true, reply: reply.trim() })
   } catch (err) {
-    console.error('Chat error:', err.message)
-    return res.status(500).json({
-      error: 'Chat unavailable',
-      reply: "I'm having trouble connecting right now. Please try again in a moment!",
-    })
+    console.error('Chat error:', err.message, '— serving demo fallback')
+    const reply = chatFallback({ message, context })
+    return res.json({ success: true, reply, _demo: true })
   }
 })
 

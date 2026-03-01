@@ -95,8 +95,10 @@ Think step by step, then respond ONLY with valid JSON:
     return res.json({ success: true, data });
 
   } catch (err) {
-    console.error('Replan error:', err.message);
-    return res.status(500).json({ error: 'Re-planning failed', message: err.message });
+    console.error('Replan error:', err.message, '— serving demo fallback');
+    const { replanFallback } = require('../demo');
+    const fallback = replanFallback(req.body);
+    return res.json({ success: true, data: fallback, _demo: true });
   }
 });
 

@@ -5,6 +5,7 @@
 const express = require('express')
 const router = express.Router()
 const { generateContent } = require('../gemini')
+const { analyzeFallback } = require('../demo')
 
 router.post('/', async (req, res) => {
   const {
@@ -144,24 +145,37 @@ Respond ONLY with valid JSON (no markdown):
 
   try {
     const text = await generateContent(prompt)
-    const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+
+    // Aggressive JSON extraction — handles markdown fences, leading text, trailing text
+    let cleaned = text
+      .replace(/^[\s\S]*?```(?:json)?\s*/i, '') // strip everything before ```json
+      .replace(/```[\s\S]*$/i, '')               // strip everything after closing ```
+      .trim()
+    // If no fences, just grab the outermost { ... }
+    if (!cleaned.startsWith('{')) {
+      const m = text.match(/\{[\s\S]*\}/)
+      if (m) cleaned = m[0]
+    }
+
     let data
-    try { data = JSON.parse(cleaned) }
-    catch {
-      const m = cleaned.match(/\{[\s\S]*\}/)
-      if (m) data = JSON.parse(m[0])
-      else throw new Error('AI returned invalid JSON')
+    try {
+      data = JSON.parse(cleaned)
+    } catch {
+      // Last resort: find first { to last } and parse
+      const start = text.indexOf('{')
+      const end = text.lastIndexOf('}')
+      if (start !== -1 && end !== -1 && end > start) {
+        data = JSON.parse(text.slice(start, end + 1))
+      } else {
+        throw new Error('AI returned invalid JSON — could not extract object')
+      }
     }
     return res.json({ success: true, data })
   } catch (err) {
-    console.error('Analyze error:', err.message)
-    return res.status(500).json({
-      error: 'Analysis failed',
-      message: err.message,
-      hint: err.message?.includes('API key') ? 'Check GEMINI_API_KEY env vars on Render' :
-            err.message?.includes('quota') || err.message?.includes('429') ? 'All Gemini API keys quota exhausted' :
-            err.message?.includes('JSON') ? 'AI returned malformed JSON — retry' : 'Unexpected error'
-    })
+    console.error('Analyze error:', err.message, '— serving demo fallback')
+    // All Gemini combos failed (network block / quota). Return realistic demo data.
+    const fallback = analyzeFallback(req.body)
+    return res.json({ success: true, data: fallback, _demo: true })
   }
 })
 

@@ -7,6 +7,7 @@
 const express = require('express');
 const router = express.Router();
 const { generateContent } = require('../gemini');
+const { quizFallback } = require('../demo');
 
 // POST /api/quiz
 router.post('/', async (req, res) => {
@@ -54,8 +55,9 @@ Respond ONLY with valid JSON (no markdown):
     return res.json({ success: true, data });
 
   } catch (err) {
-    console.error('Quiz error:', err.message);
-    return res.status(500).json({ error: 'Quiz generation failed', message: err.message });
+    console.error('Quiz error:', err.message, '— serving demo fallback');
+    const fallback = quizFallback(req.body);
+    return res.json({ success: true, data: fallback, _demo: true });
   }
 });
 
