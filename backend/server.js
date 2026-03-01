@@ -32,8 +32,11 @@ const allowedOrigins = [
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (curl, Postman, Render health checks)
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true)
-    callback(new Error('Not allowed by CORS'))
+    if (!origin) return callback(null, true);
+    // Allow any onrender.com subdomain (deployed frontend)
+    if (origin.endsWith('.onrender.com')) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
 }));
@@ -84,6 +87,15 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/quiz', quizRoutes);
 app.use('/api/replan', replanRoutes);
 
+// Root route
+app.get('/', (req, res) => {
+  res.json({
+    message: 'SkillForge API is running',
+    status: 'ok',
+    docs: '/api/health',
+  });
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({
@@ -130,6 +142,22 @@ app.listen(PORT, async () => {
     console.error(`  ❌ Model ping FAILED — ${e.message.slice(0, 120)}`)
     console.error('     Check GEMINI_API_KEY / GEMINI_API_KEY_2 in backend/.env')
   }
+
+  // ── Keep-alive: ping self every 14 min so Render free tier never sleeps ──
+  const SELF_URL = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`
+  const https = require('https')
+  const http = require('http')
+  setInterval(() => {
+    const url = `${SELF_URL}/api/health`
+    const client = url.startsWith('https') ? https : http
+    const req = client.get(url, (res) => {
+      console.log(`  🤖 Keep-alive ping → ${url}  [${res.statusCode}]`)
+    })
+    req.on('error', (err) => {
+      console.warn(`  ⚠️  Keep-alive ping failed: ${err.message}`)
+    })
+    req.end()
+  }, 14 * 60 * 1000) // every 14 minutes
 });
 
 module.exports = app;

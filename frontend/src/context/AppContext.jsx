@@ -9,7 +9,7 @@ const AppContext = createContext(null)
 const BACKEND_URL = import.meta.env.VITE_API_URL ||
   (import.meta.env.DEV ? '' : 'https://careerramp-1.onrender.com')
 
-const api = axios.create({
+export const api = axios.create({
   baseURL: BACKEND_URL,
 })
 

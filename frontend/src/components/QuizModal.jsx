@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
-import axios from 'axios'
 import { X, Loader2, CheckCircle2, XCircle, Trophy, Zap } from 'lucide-react'
-import { useApp } from '../context/AppContext'
+import { useApp, api } from '../context/AppContext'
 
 export default function QuizModal({ stepId, stepTitle, onClose }) {
   const { profile, recordQuizScore } = useApp()
@@ -14,7 +13,7 @@ export default function QuizModal({ stepId, stepTitle, onClose }) {
   const fetchQuiz = async () => {
     setLoading(true)
     try {
-      const res = await axios.post('/api/quiz', {
+      const res = await api.post('/api/quiz', {
         skill: stepTitle,
         stepTitle: stepTitle,
         role: profile?.role,
