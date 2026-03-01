@@ -186,9 +186,6 @@ export default function Landing() {
             </div>
             <span className="text-sm font-medium text-[#45434F]">CareerRamp</span>
           </div>
-          <p className="text-xs text-[#45434F]">
-            2025 CareerRamp - Built with Gemini AI - Made for India
-          </p>
         </div>
       </footer>
 
