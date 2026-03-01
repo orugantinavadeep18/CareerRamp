@@ -15,7 +15,7 @@ function HistorySidebar({ open, onToggle }) {
 
   return (
     <aside
-      className={`fixed left-0 top-0 h-full z-40 flex flex-col transition-all duration-300 ease-in-out
+      className={`fixed left-0 top-0 h-full z-40 hidden sm:flex flex-col transition-all duration-300 ease-in-out
         ${open ? 'w-[240px]' : 'w-10'}
         bg-[#0B0B15] border-r border-white/[0.06]`}
     >
@@ -180,14 +180,14 @@ export default function Dashboard() {
       {/* History sidebar */}
       <HistorySidebar open={sidebarOpen} onToggle={() => setSidebarOpen(p => !p)} />
 
-      {/* Main content — offset by sidebar width */}
-      <div className={`flex-1 min-w-0 transition-all duration-300 ${sidebarOpen ? 'ml-[240px]' : 'ml-10'}`}>
+      {/* Main content — offset by sidebar width on desktop only */}
+      <div className={`flex-1 min-w-0 transition-all duration-300 ${sidebarOpen ? 'ml-0 sm:ml-[240px]' : 'ml-0 sm:ml-10'}`}>
       <Navbar />
 
       {/* ── Hero Summary ── */}
-      <div className="pt-14 pb-7 px-5 sm:px-8 bg-gradient-to-b from-[#0B0B15] to-[#08080D] border-b border-white/[0.06]">
+      <div className="pt-16 pb-6 px-4 sm:px-8 bg-gradient-to-b from-[#0B0B15] to-[#08080D] border-b border-white/[0.06]">
         <div className="max-w-5xl mx-auto">
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
             <div>
               <p className="section-label mb-2">Analysis complete</p>
               <h1 className="text-2xl font-bold tracking-tight text-[#EDEAE4]">
@@ -218,13 +218,13 @@ export default function Dashboard() {
       </div>
 
       {/* ── Section Nav ── */}
-      <div className="sticky top-[60px] z-40 bg-[#08080D]/95 backdrop-blur-xl border-b border-white/[0.06] overflow-x-auto">
-        <div className="flex px-5 sm:px-8 gap-0 max-w-5xl mx-auto">
+      <div className="sticky top-[60px] z-40 bg-[#08080D]/95 backdrop-blur-xl border-b border-white/[0.06] overflow-x-auto scrollbar-hide">
+        <div className="flex px-3 sm:px-8 gap-0 max-w-5xl mx-auto">
           {NAV_ITEMS.map(n => (
             <button
               key={n.id}
               onClick={() => scrollTo(n.id)}
-              className={`px-3 sm:px-4 py-3.5 text-xs font-medium whitespace-nowrap transition-colors border-b-2 ${
+              className={`px-2.5 sm:px-4 py-3.5 text-xs font-medium whitespace-nowrap transition-colors border-b-2 flex-shrink-0 ${
                 activeSection === n.id
                   ? 'border-amber-400 text-amber-300'
                   : 'border-transparent text-[#45434F] hover:text-[#7E7C8E]'
@@ -237,7 +237,7 @@ export default function Dashboard() {
       </div>
 
       {/* ── Main Content ── */}
-      <div className="max-w-5xl mx-auto px-5 sm:px-8 py-10 space-y-14">
+      <div className="max-w-5xl mx-auto px-4 sm:px-8 py-8 sm:py-10 space-y-10 sm:space-y-14">
 
         {/* ── Agent Thoughts ── */}
         {(aiThoughts.length > 0 || agentThoughts.length > 0) && (
@@ -254,7 +254,7 @@ export default function Dashboard() {
 
         {/* ── CAREER MATCHES ── */}
         <Section id="matches" icon={<Star size={18} />} title="Your Career Matches">
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {topMatches.map((career, i) => (
               <div key={career.career}>
                 <CareerMatchCard career={career} rank={i} />

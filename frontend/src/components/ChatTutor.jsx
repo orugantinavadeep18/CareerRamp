@@ -171,7 +171,7 @@ export default function ChatTutor() {
   }
 
   return (
-    <div className="card flex flex-col h-[520px]">
+    <div className="card flex flex-col h-[420px] sm:h-[520px]">
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
         <div className="flex items-center gap-3">

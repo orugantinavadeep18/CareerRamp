@@ -54,7 +54,7 @@ export default function CareerMatchCard({ career, rank }) {
           <p className="text-[#7E7C8E] text-sm mt-2.5 leading-relaxed line-clamp-2">{career.whyFit}</p>
         </div>
         {/* Score Arc */}
-        <div className="shrink-0">
+        <div className="shrink-0 scale-75 sm:scale-100 origin-top-right -mt-1 -mr-1 sm:mt-0 sm:mr-0">
           <MatchArc score={career.matchScore} />
           <p className="text-center text-[10px] text-[#45434F] mt-0.5">match</p>
         </div>
