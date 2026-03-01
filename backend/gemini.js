@@ -13,7 +13,7 @@
 require('dotenv').config()
 const { GoogleGenerativeAI } = require('@google/generative-ai')
 
-const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite'
+const MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash'
 
 const KEYS = [
   process.env.GEMINI_API_KEY,

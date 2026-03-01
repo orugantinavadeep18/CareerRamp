@@ -155,7 +155,13 @@ Respond ONLY with valid JSON (no markdown):
     return res.json({ success: true, data })
   } catch (err) {
     console.error('Analyze error:', err.message)
-    return res.status(500).json({ error: 'Analysis failed', message: err.message })
+    return res.status(500).json({
+      error: 'Analysis failed',
+      message: err.message,
+      hint: err.message?.includes('API key') ? 'Check GEMINI_API_KEY env vars on Render' :
+            err.message?.includes('quota') || err.message?.includes('429') ? 'All Gemini API keys quota exhausted' :
+            err.message?.includes('JSON') ? 'AI returned malformed JSON — retry' : 'Unexpected error'
+    })
   }
 })
 
