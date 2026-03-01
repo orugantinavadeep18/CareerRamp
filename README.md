@@ -5,6 +5,16 @@
 
 ---
 
+## 🚀 Live Demo
+
+| Service | URL |
+|---|---|
+| **Frontend (Vercel)** | https://career-ramp-g8d5.vercel.app |
+| **Backend API (Render)** | https://careerramp-1.onrender.com |
+| **API Health Check** | https://careerramp-1.onrender.com/api/health |
+
+---
+
 ## What is CareerRamp?
 
 CareerRamp is a full-stack, AI-powered career guidance platform built specifically for Indian students and early-career professionals. It bridges the gap between a student's current background and their ideal career — using Google Gemini AI to deliver **personalised**, **adaptive** career roadmaps based on real-world factors: education level, location, financial condition, extracurricular activities, and a live knowledge quiz.
@@ -19,7 +29,7 @@ Unlike static career counselling or generic chatbots, CareerRamp **thinks** — 
 |---|---|
 | **Agent / App Name** | CareerRamp |
 | **Framework** | React 18 + Vite (Frontend) · Node.js + Express (Backend) |
-| **AI Model** | Google Gemini 2.5 Flash Lite (`gemini-2.5-flash-lite-preview-06-17`) |
+| **AI Model** | Google Gemini 2.5 Flash Lite (`gemini-2.5-flash-lite`) |
 | **Database** | MongoDB Atlas (Mongoose v8) |
 | **Auth** | JWT (30-day tokens) + bcryptjs |
 | **Hosting** | Frontend → Vercel · Backend → Render (free tier) |
@@ -40,8 +50,8 @@ Unlike static career counselling or generic chatbots, CareerRamp **thinks** — 
 ### Backend
 | Technology | Purpose |
 |---|---|
-| Node.js + Express | REST API server (port 3001) |
-| `@google/generative-ai` | Gemini AI integration |
+| Node.js + Express | REST API server |
+| `@google/generative-ai` | Gemini AI integration with 4-key fallback |
 | Mongoose v8 + MongoDB Atlas | Persistent session & user storage |
 | jsonwebtoken + bcryptjs | Auth tokens + password hashing |
 | express-rate-limit | Rate limiting on AI endpoints |
@@ -51,7 +61,8 @@ Unlike static career counselling or generic chatbots, CareerRamp **thinks** — 
 ## Core Features
 
 ### Adaptive GenAI Backend (Deliverable 1)
-- **Dual Gemini key fallback** — if primary key hits quota (429), automatically switches to backup key with zero downtime
+- **4-key Gemini fallback** — if a key hits quota (429), automatically switches to the next key with zero downtime
+- **Self keep-alive bot** — server pings its own `/api/health` every 14 minutes so the Render free tier never sleeps
 - **Profile-aware prompting** — full user context (education, location, activities, financial condition, quiz score, career urgency) is injected into every Gemini prompt
 - **Quiz-adjusted AI depth** — `basic` / `intermediate` / `advanced` level calculated from quiz score directly changes the complexity of AI explanations and roadmap detail
 - **Adaptive replan** — `/api/replan` lets users request a cheaper, faster, or different variation of their roadmap; Gemini regenerates with the new constraint
@@ -86,6 +97,7 @@ Unlike static career counselling or generic chatbots, CareerRamp **thinks** — 
 ```
 +-----------------------------------------------------------------+
 |                        FRONTEND (React)                         |
+|              https://career-ramp-g8d5.vercel.app                |
 |                                                                 |
 |  Landing -> Auth -> Welcome -> Onboarding ------------------+  |
 |                                             runAnalysis()   |  |
@@ -104,17 +116,21 @@ Unlike static career counselling or generic chatbots, CareerRamp **thinks** — 
 |  +-- ChatTutor (context-aware Gemini chat)                     |
 +----------------------------------+------------------------------+
                                    | Axios + JWT Bearer token
-                                   | Vite proxy /api -> :3001
+                                   | VITE_API_URL → Render backend
 +----------------------------------v------------------------------+
 |                       BACKEND (Express)                         |
+|              https://careerramp-1.onrender.com                  |
 |                                                                 |
 |  POST /api/auth/register    POST /api/auth/login                |
 |  GET  /api/history          POST /api/history                   |
 |  DELETE /api/history/:id                                        |
-|  POST /api/analyze  -->  gemini.js (key1 -> key2 fallback)      |
+|  POST /api/analyze  -->  gemini.js (key1->key2->key3->key4)     |
 |  POST /api/chat     -->  gemini.js                              |
 |  POST /api/quiz     -->  gemini.js                              |
 |  POST /api/replan   -->  gemini.js                              |
+|  GET  /api/health   -->  status check + keep-alive target       |
+|                                                                 |
+|  🤖 Keep-alive: self-pings /api/health every 14 min            |
 +----------------------------------+------------------------------+
                                    | Mongoose v8
                       +------------v------------+
@@ -130,8 +146,8 @@ Unlike static career counselling or generic chatbots, CareerRamp **thinks** — 
 ```
 skillforge/
 +-- backend/
-|   +-- server.js                  <- Express app, routes, rate limiting
-|   +-- gemini.js                  <- Gemini client with dual-key fallback
+|   +-- server.js                  <- Express app, CORS, routes, keep-alive bot
+|   +-- gemini.js                  <- Gemini client with 4-key fallback
 |   +-- .env                       <- secrets (not committed)
 |   +-- .env.example               <- template for setup
 |   +-- middleware/
@@ -147,10 +163,12 @@ skillforge/
 |       +-- quiz.js                <- MCQ generation (Gemini)
 |       +-- replan.js              <- adaptive roadmap replan (Gemini)
 +-- frontend/
+    +-- .env                       <- VITE_API_URL (not committed)
+    +-- .env.example               <- template for setup
     +-- src/
         +-- App.jsx                <- page router
         +-- context/
-        |   +-- AppContext.jsx     <- global state, API calls, auth
+        |   +-- AppContext.jsx     <- global state, shared api instance, auth
         +-- utils/
         |   +-- sounds.js          <- Web Audio API sound effects
         +-- pages/
@@ -197,7 +215,7 @@ npm install
 
 ### 2. Configure environment variables
 
-Copy `backend/.env.example` to `backend/.env` and fill in:
+**Backend** — copy `backend/.env.example` to `backend/.env`:
 
 ```env
 PORT=3001
@@ -205,31 +223,107 @@ MONGODB_URI=mongodb+srv://<user>:<password>@<cluster>.mongodb.net/<dbname>
 JWT_SECRET=your_jwt_secret_here
 GEMINI_API_KEY=your_primary_gemini_key
 GEMINI_API_KEY_2=your_fallback_gemini_key
+GEMINI_API_KEY_3=your_fallback_gemini_key_3
+GEMINI_API_KEY_4=your_fallback_gemini_key_4
+GEMINI_MODEL=gemini-2.5-flash-lite
+FRONTEND_URL=http://localhost:5173
 ```
 
-> Both Gemini keys can be the same key if you only have one. The fallback is a resilience feature for quota limits.
+**Frontend** — create `frontend/.env`:
 
-### 3. Run the backend
+```env
+VITE_API_URL=http://localhost:3001
+```
+
+> In development the Vite proxy handles `/api` → `localhost:3001` automatically.
+
+### 3. Run locally
 
 ```bash
+# Terminal 1 — backend
 cd skillforge/backend
 node server.js
-# Server starts on http://localhost:3001
-```
+# → http://localhost:3001
 
-### 4. Run the frontend
-
-```bash
+# Terminal 2 — frontend
 cd skillforge/frontend
 npm run dev
-# App starts on http://localhost:5173
+# → http://localhost:5173
 ```
 
-### 5. Open in browser
+Visit **http://localhost:5173** → Register → Complete onboarding → Get your AI career analysis.
 
-Visit **http://localhost:5173**
+---
 
-Register with your phone number → Complete the 5-step onboarding → Get your AI career analysis.
+## Deployment
+
+### Backend → Render
+
+1. Connect your GitHub repo to [render.com](https://render.com)
+2. **Root Directory:** `skillforge/backend`
+3. **Build Command:** `npm install`
+4. **Start Command:** `node server.js`
+5. **Environment Variables** (Render dashboard → Environment):
+
+```
+GEMINI_API_KEY        = your_key_1
+GEMINI_API_KEY_2      = your_key_2
+GEMINI_API_KEY_3      = your_key_3
+GEMINI_API_KEY_4      = your_key_4
+GEMINI_MODEL          = gemini-2.5-flash-lite
+MONGODB_URI           = your_mongodb_atlas_uri
+JWT_SECRET            = your_jwt_secret
+FRONTEND_URL          = https://your-vercel-app.vercel.app
+```
+
+> `PORT` is set automatically by Render — do not add it manually.
+
+### Frontend → Vercel
+
+1. Connect your GitHub repo to [vercel.com](https://vercel.com)
+2. **Root Directory:** `skillforge/frontend`
+3. **Build Command:** `npm run build`
+4. **Output Directory:** `dist`
+5. **Environment Variables** (Vercel dashboard → Settings → Environment Variables):
+
+```
+VITE_API_URL = https://careerramp-1.onrender.com
+```
+
+---
+
+## Keep-Alive Bot (Anti-Sleep)
+
+Render free tier spins down after 15 minutes of inactivity. CareerRamp solves this with a built-in self-ping:
+
+```js
+// runs automatically after server starts
+setInterval(() => {
+  https.get(`${RENDER_EXTERNAL_URL}/api/health`, ...)
+}, 14 * 60 * 1000) // every 14 minutes
+```
+
+- Uses `RENDER_EXTERNAL_URL` which Render sets automatically — no config needed
+- Falls back to `localhost` in development (harmless)
+- Logs: `🤖 Keep-alive ping → https://careerramp-1.onrender.com/api/health [200]`
+
+---
+
+## API Endpoints
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| POST | `/api/auth/register` | ❌ | Register with phone + password |
+| POST | `/api/auth/login` | ❌ | Login, returns JWT |
+| GET | `/api/history` | ✅ | List all saved analyses |
+| POST | `/api/history` | ✅ | Save an analysis session |
+| GET | `/api/history/:id` | ✅ | Get a single session |
+| DELETE | `/api/history/:id` | ✅ | Delete a session |
+| POST | `/api/analyze` | ✅ | Run full AI career analysis |
+| POST | `/api/chat` | ✅ | AI tutor chat message |
+| POST | `/api/quiz` | ✅ | Generate quiz questions |
+| POST | `/api/replan` | ✅ | Regenerate roadmap with new constraints |
+| GET | `/api/health` | ❌ | Server health check |
 
 ---
 
