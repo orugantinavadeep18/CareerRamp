@@ -144,6 +144,13 @@ export default function UserDashboard() {
   const [chatLoading, setChatLoading] = useState(false)
   const [chatStreaming, setChatStreaming] = useState(false)
   const chatIntervalRef = useRef(null)
+  const tabEnterTime = useRef(Date.now())
+  const [tabTimings, setTabTimings] = useState(() => {
+    try {
+      const uid = user?._id || 'guest'
+      return JSON.parse(localStorage.getItem(`cr_tab_time_${uid}`) || '{}')
+    } catch { return {} }
+  })
   const [localChat, setLocalChat] = useState([
     { role: 'ai', content: `Hi ${user?.phone ? formatPhone(user.phone) : 'there'}! 👋 I'm your CareerRamp advisor. Ask me anything about careers, entrance exams, courses, or your assessment results!`, displayed: `Hi ${user?.phone ? formatPhone(user.phone) : 'there'}! 👋 I'm your CareerRamp advisor. Ask me anything about careers, entrance exams, courses, or your assessment results!` }
   ])
@@ -166,6 +173,12 @@ export default function UserDashboard() {
   useEffect(() => {
     localStorage.setItem('cr_likes', JSON.stringify(likes))
   }, [likes])
+
+  // ── Persist tab timings ─────────────────────────────────────────────────
+  useEffect(() => {
+    const uid = user?._id || 'guest'
+    localStorage.setItem(`cr_tab_time_${uid}`, JSON.stringify(tabTimings))
+  }, [tabTimings, user])
 
   // ── Check goal notifications on mount / tab switch ──────────────────────
   useEffect(() => {
@@ -236,6 +249,15 @@ export default function UserDashboard() {
   const deleteGoal = (id) => setGoals(p => p.filter(g => g.id !== id))
   const toggleGoalDone = (id) => setGoals(p => p.map(g => g.id === id ? { ...g, completed: !g.completed } : g))
 
+  // ── Tab navigation with implicit time tracking ───────────────────────────
+  const gotoTab = useCallback((newTab) => {
+    if (newTab === tab) return
+    const elapsed = Date.now() - tabEnterTime.current
+    setTabTimings(prev => ({ ...prev, [tab]: (prev[tab] || 0) + elapsed }))
+    tabEnterTime.current = Date.now()
+    setTab(newTab)
+  }, [tab])
+
   // ── Chat send ───────────────────────────────────────────────────────────
   const handleSendChat = async () => {
     const msg = chatInput.trim()
@@ -244,7 +266,17 @@ export default function UserDashboard() {
     setLocalChat(p => [...p, { role: 'user', content: msg, displayed: msg }])
     setChatLoading(true)
     try {
-      const reply = await sendChat(msg)
+      // Detect repeated / confusion queries and adapt the prompt
+      const stopwords = new Set(['what','that','this','have','from','with','about','your','like','into','more','some','when','then','than','they','been','just','also','over','after'])
+      const extractKW = (text) => text.toLowerCase().split(/\W+/).filter(w => w.length > 4 && !stopwords.has(w))
+      const recentUserMsgs = localChat.filter(m => m.role === 'user').slice(-4)
+      const recentKW = new Set(recentUserMsgs.flatMap(m => extractKW(m.content)))
+      const newKW = extractKW(msg)
+      const overlap = newKW.filter(w => recentKW.has(w))
+      const apiMsg = overlap.length >= 2
+        ? `${msg}\n\n[AI instruction: The student appears confused — they have asked about similar topics (${overlap.slice(0, 3).join(', ')}) before. Please explain more simply with a step-by-step breakdown and a concrete example.]`
+        : msg
+      const reply = await sendChat(apiMsg)
       const fullReply = reply || "I'm having trouble connecting. Please try again!"
       // Add empty AI message, then typewrite
       setLocalChat(p => [...p, { role: 'ai', content: fullReply, displayed: '', streaming: true }])
@@ -323,8 +355,9 @@ export default function UserDashboard() {
         <aside className="hidden md:flex flex-col w-[220px] shrink-0 border-r border-white/[0.06] py-6 sticky top-[58px] h-[calc(100vh-58px)]">
           <nav className="flex flex-col gap-1 px-3">
             {NAV.map(n => (
-              <button key={n.key} onClick={() => setTab(n.key)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              <button key={n.key} onClick={() => gotoTab(n.key)}
+                aria-label={`Navigate to ${n.label}`}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50 ${
                   tab === n.key
                     ? 'bg-amber-400/10 text-amber-300 border border-amber-400/20'
                     : 'text-[#7E7C8E] hover:bg-white/[0.04] hover:text-[#EDEAE4]'
@@ -391,7 +424,7 @@ export default function UserDashboard() {
                     <p className="text-lg font-bold">{topCareer.careerName}</p>
                     <div className="flex items-center gap-3 mt-1">
                       <span className="text-sm text-[#7E7C8E]">{topCareer.matchScore || topCareer.match}% match</span>
-                      <button onClick={() => setTab('history')} className="text-xs text-amber-400 hover:underline flex items-center gap-1">
+                      <button onClick={() => gotoTab('history')} className="text-xs text-amber-400 hover:underline flex items-center gap-1">
                         View report <ChevronRight size={11} />
                       </button>
                     </div>
@@ -411,7 +444,7 @@ export default function UserDashboard() {
                         <p className="text-[11px] text-[#45434F]">Get fresh career matches</p>
                       </div>
                     </button>
-                    <button onClick={() => setTab('advisor')} className="card card-hover flex items-center gap-3 text-left">
+                    <button onClick={() => gotoTab('advisor')} className="card card-hover flex items-center gap-3 text-left">
                       <div className="w-9 h-9 rounded-xl bg-indigo-400/10 border border-indigo-400/20 flex items-center justify-center shrink-0">
                         <MessageCircle size={16} className="text-indigo-400" />
                       </div>
@@ -420,7 +453,7 @@ export default function UserDashboard() {
                         <p className="text-[11px] text-[#45434F]">Career questions × AI</p>
                       </div>
                     </button>
-                    <button onClick={() => { setTab('goals'); openAddGoal() }} className="card card-hover flex items-center gap-3 text-left">
+                    <button onClick={() => { gotoTab('goals'); openAddGoal() }} className="card card-hover flex items-center gap-3 text-left">
                       <div className="w-9 h-9 rounded-xl bg-emerald-400/10 border border-emerald-400/20 flex items-center justify-center shrink-0">
                         <Flag size={16} className="text-emerald-400" />
                       </div>
@@ -446,7 +479,7 @@ export default function UserDashboard() {
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <p className="text-[11px] text-[#45434F] font-semibold tracking-widest uppercase">Recent Analyses</p>
-                      <button onClick={() => setTab('history')} className="text-xs text-amber-400 hover:underline">View all</button>
+                      <button onClick={() => gotoTab('history')} className="text-xs text-amber-400 hover:underline">View all</button>
                     </div>
                     <div className="space-y-2">
                       {sessionHistory.slice(0, 3).map(s => (
@@ -461,7 +494,7 @@ export default function UserDashboard() {
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <p className="text-[11px] text-[#45434F] font-semibold tracking-widest uppercase">Active Goals</p>
-                      <button onClick={() => setTab('goals')} className="text-xs text-amber-400 hover:underline">Manage</button>
+                      <button onClick={() => gotoTab('goals')} className="text-xs text-amber-400 hover:underline">Manage</button>
                     </div>
                     <div className="space-y-2">
                       {activeGoals.slice(0, 3).map(g => <MiniGoalCard key={g.id} g={g} toggleDone={toggleGoalDone} />)}
@@ -487,7 +520,7 @@ export default function UserDashboard() {
                 {/* Filter tabs */}
                 <div className="flex gap-2 mb-5">
                   {[{k:'all',l:'All'},{k:'liked',l:'❤️ Saved'}].map(f => (
-                    <button key={f.k} onClick={() => setTab(f.k === 'liked' ? 'liked' : 'history')}
+                    <button key={f.k} onClick={() => gotoTab(f.k === 'liked' ? 'liked' : 'history')}
                       className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${f.k==='all' ? 'border-amber-400/25 bg-amber-400/10 text-amber-300' : 'border-white/[0.07] text-[#7E7C8E] hover:border-white/15'}`}>
                       {f.l}
                     </button>
@@ -517,7 +550,7 @@ export default function UserDashboard() {
             {tab === 'liked' && (
               <div className="animate-fade-up">
                 <div className="flex items-center gap-3 mb-6">
-                  <button onClick={() => setTab('history')} className="text-[#7E7C8E] hover:text-[#EDEAE4]"><ChevronRight size={16} className="rotate-180" /></button>
+                  <button onClick={() => gotoTab('history')} aria-label="Back to history" className="text-[#7E7C8E] hover:text-[#EDEAE4]"><ChevronRight size={16} className="rotate-180" /></button>
                   <h2 className="text-xl font-bold">Saved Reports</h2>
                 </div>
                 {!likedSessions.length ? (
@@ -525,7 +558,7 @@ export default function UserDashboard() {
                     <Heart size={32} className="mx-auto mb-3 opacity-30" />
                     <p className="font-medium">No saved reports yet</p>
                     <p className="text-sm mt-1">Heart a report to save it here</p>
-                    <button onClick={() => setTab('history')} className="text-amber-400 text-sm mt-3 hover:underline">Browse history →</button>
+                    <button onClick={() => gotoTab('history')} className="text-amber-400 text-sm mt-3 hover:underline">Browse history →</button>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -599,21 +632,33 @@ export default function UserDashboard() {
                   <p className="text-[#7E7C8E] text-sm mt-0.5">Ask anything about careers, colleges, entrance exams, or your results</p>
                 </div>
 
-                {/* Suggested prompts */}
-                <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 mb-3">
-                  {[
-                    'What entrance exams should I prepare for?',
-                    'How do I improve my resume?',
-                    'Best online courses for my career',
-                    'What salary can I expect?',
-                    'How to switch careers?',
-                  ].map(q => (
-                    <button key={q} onClick={() => { setChatInput(q) }}
-                      className="shrink-0 text-xs bg-white/[0.04] border border-white/[0.08] hover:border-amber-400/25 text-[#7E7C8E] hover:text-[#EDEAE4] rounded-full px-3 py-1.5 transition-colors whitespace-nowrap">
-                      {q}
-                    </button>
-                  ))}
-                </div>
+                {/* Suggested prompts — first one adapts to the most-visited tab (implicit feedback) */}
+                {(() => {
+                  const tabPrompts = {
+                    history: 'Explain my most recent career analysis',
+                    goals: 'Help me plan a learning schedule for my goals',
+                    overview: 'What is my overall career readiness right now?',
+                  }
+                  const topTab = Object.entries(tabTimings).sort((a, b) => b[1] - a[1])[0]?.[0]
+                  const dynamicPrompt = tabPrompts[topTab]
+                  const basePrompts = ['What entrance exams should I prepare for?', 'How do I improve my resume?', 'Best online courses for my career', 'What salary can I expect?', 'How to switch careers?']
+                  const prompts = dynamicPrompt ? [dynamicPrompt, ...basePrompts.slice(0, 4)] : basePrompts
+                  return (
+                    <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 mb-3">
+                      {prompts.map((q, idx) => (
+                        <button key={q} onClick={() => setChatInput(q)}
+                          aria-label={`Ask: ${q}`}
+                          className={`shrink-0 text-xs border rounded-full px-3 py-1.5 transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50 ${
+                            idx === 0 && dynamicPrompt
+                              ? 'bg-amber-400/10 border-amber-400/25 text-amber-300 hover:bg-amber-400/15'
+                              : 'bg-white/[0.04] border-white/[0.08] hover:border-amber-400/25 text-[#7E7C8E] hover:text-[#EDEAE4]'
+                          }`}>
+                          {idx === 0 && dynamicPrompt ? `★ ${q}` : q}
+                        </button>
+                      ))}
+                    </div>
+                  )
+                })()}
 
                 {/* Messages */}
                 <div className="flex-1 overflow-y-auto space-y-4 pr-1" style={{ minHeight: 0 }}>
@@ -639,7 +684,7 @@ export default function UserDashboard() {
                     </div>
                   ))}
                   {chatLoading && (
-                    <div className="flex gap-3">
+                    <div role="status" aria-label="AI is typing a response" className="flex gap-3">
                       <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shrink-0">
                         <Compass size={12} className="text-white" />
                       </div>
@@ -666,7 +711,8 @@ export default function UserDashboard() {
                     className="flex-1 input-field py-3"
                   />
                   <button onClick={handleSendChat} disabled={!chatInput.trim() || chatLoading || chatStreaming}
-                    className="w-11 h-11 rounded-xl bg-amber-400 hover:bg-amber-300 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-colors shrink-0">
+                    aria-label="Send message"
+                    className="w-11 h-11 rounded-xl bg-amber-400 hover:bg-amber-300 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/80 shrink-0">
                     <Send size={15} className="text-[#08080D]" />
                   </button>
                 </div>
@@ -680,8 +726,9 @@ export default function UserDashboard() {
       {/* ── Bottom nav (mobile) ──────────────────────────────────────── */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#08080D]/90 backdrop-blur-xl border-t border-white/[0.06] flex items-stretch h-16">
         {NAV.map(n => (
-          <button key={n.key} onClick={() => setTab(n.key)}
-            className={`flex-1 flex flex-col items-center justify-center gap-1 transition-colors relative ${
+          <button key={n.key} onClick={() => gotoTab(n.key)}
+            aria-label={`Navigate to ${n.label}`}
+            className={`flex-1 flex flex-col items-center justify-center gap-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50 relative ${
               tab === n.key ? 'text-amber-400' : 'text-[#45434F]'
             }`}>
             <n.icon size={18} />
@@ -759,11 +806,11 @@ function MiniSessionCard({ s, likes, toggleLike, loadSession, deleteSession }) {
         <p className="text-[11px] text-[#45434F]">{timeAgo(s.createdAt)}</p>
       </div>
       <div className="flex items-center gap-2">
-        <button onClick={() => toggleLike(s._id)} className={`transition-colors ${likes.includes(s._id) ? 'text-rose-400' : 'text-[#45434F] hover:text-rose-400'}`}>
+        <button onClick={() => toggleLike(s._id)} aria-label={likes.includes(s._id) ? 'Unlike report' : 'Like report'} className={`transition-colors ${likes.includes(s._id) ? 'text-rose-400' : 'text-[#45434F] hover:text-rose-400'}`}>
           <Heart size={13} fill={likes.includes(s._id) ? 'currentColor' : 'none'} />
         </button>
-        <button onClick={() => loadSession(s._id)} className="text-[#45434F] hover:text-amber-400 transition-colors"><Eye size={13} /></button>
-        <button onClick={() => deleteSession(s._id)} className="text-[#45434F] hover:text-rose-400 transition-colors"><Trash2 size={13} /></button>
+        <button onClick={() => loadSession(s._id)} aria-label="View report" className="text-[#45434F] hover:text-amber-400 transition-colors"><Eye size={13} /></button>
+        <button onClick={() => deleteSession(s._id)} aria-label="Delete report" className="text-[#45434F] hover:text-rose-400 transition-colors"><Trash2 size={13} /></button>
       </div>
     </div>
   )
@@ -799,10 +846,10 @@ function FullSessionCard({ s, likes, toggleLike, loadSession, deleteSession }) {
         <button onClick={() => loadSession(s._id)} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-amber-400/10 border border-amber-400/20 text-amber-300 text-sm font-medium hover:bg-amber-400/15 transition-colors">
           <Eye size={13} /> View Report
         </button>
-        <button onClick={() => toggleLike(s._id)} className={`px-3 py-2 rounded-xl border transition-colors ${likes.includes(s._id) ? 'border-rose-400/30 bg-rose-400/10 text-rose-300' : 'border-white/[0.07] text-[#45434F] hover:text-rose-400'}`}>
+        <button onClick={() => toggleLike(s._id)} aria-label={likes.includes(s._id) ? 'Unlike report' : 'Like report'} className={`px-3 py-2 rounded-xl border transition-colors ${likes.includes(s._id) ? 'border-rose-400/30 bg-rose-400/10 text-rose-300' : 'border-white/[0.07] text-[#45434F] hover:text-rose-400'}`}>
           <Heart size={14} fill={likes.includes(s._id) ? 'currentColor' : 'none'} />
         </button>
-        <button onClick={() => deleteSession(s._id)} className="px-3 py-2 rounded-xl border border-white/[0.07] text-[#45434F] hover:text-rose-400 hover:border-rose-400/20 transition-colors">
+        <button onClick={() => deleteSession(s._id)} aria-label="Delete session" className="px-3 py-2 rounded-xl border border-white/[0.07] text-[#45434F] hover:text-rose-400 hover:border-rose-400/20 transition-colors">
           <Trash2 size={14} />
         </button>
       </div>
@@ -817,7 +864,7 @@ function GoalCard({ g, onEdit, onDelete, onToggleDone, done }) {
   return (
     <div className={`card transition-all ${done ? 'opacity-60' : ''} border-white/[0.06]`}>
       <div className="flex items-start gap-3">
-        <button onClick={() => onToggleDone(g.id)} className={`mt-0.5 shrink-0 transition-colors ${done ? 'text-emerald-400' : 'text-[#45434F] hover:text-emerald-400'}`}>
+        <button onClick={() => onToggleDone(g.id)} aria-label={done ? 'Mark goal as incomplete' : 'Mark goal as complete'} className={`mt-0.5 shrink-0 transition-colors ${done ? 'text-emerald-400' : 'text-[#45434F] hover:text-emerald-400'}`}>
           {done ? <CheckCircle2 size={17} /> : <Circle size={17} />}
         </button>
         <div className="flex-1 min-w-0">
@@ -871,7 +918,7 @@ function MiniGoalCard({ g, toggleDone }) {
         <p className="text-sm font-medium truncate">{g.title}</p>
         <p className="text-[11px] text-[#45434F]">{periodLabel(g.period)}{left ? ` · ${left}` : ''}</p>
       </div>
-      <button onClick={() => toggleDone(g.id)} className="text-[#45434F] hover:text-emerald-400 transition-colors shrink-0">
+      <button onClick={() => toggleDone(g.id)} aria-label="Mark goal as complete" className="text-[#45434F] hover:text-emerald-400 transition-colors shrink-0">
         <CheckCircle2 size={15} />
       </button>
     </div>

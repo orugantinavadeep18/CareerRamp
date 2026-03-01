@@ -52,7 +52,7 @@ function MessageBubble({ msg }) {
 
 function TypingIndicator() {
   return (
-    <div className="flex items-start gap-2.5">
+    <div role="status" aria-label="AI is typing a response" className="flex items-start gap-2.5">
       <div className="w-8 h-8 rounded-full flex-shrink-0 bg-gradient-to-br from-amber-400 to-rose-400 flex items-center justify-center">
         <Sparkles size={14} className="text-[#0a0a0f]" />
       </div>
@@ -126,8 +126,18 @@ export default function ChatTutor() {
     setMessages(prev => [...prev, { role: 'user', content }])
 
     try {
+      // Detect repeated / confusion queries and adapt the prompt
+      const stopwords = new Set(['what','that','this','have','from','with','about','your','like','into','more','some','when','then','than','they','been','just','also','over','after'])
+      const extractKW = (text) => text.toLowerCase().split(/\W+/).filter(w => w.length > 4 && !stopwords.has(w))
+      const recentUserMsgs = messages.filter(m => m.role === 'user').slice(-4)
+      const recentKW = new Set(recentUserMsgs.flatMap(m => extractKW(m.content)))
+      const newKW = extractKW(content)
+      const overlap = newKW.filter(w => recentKW.has(w))
+      const apiMessage = overlap.length >= 2
+        ? `${content}\n\n[AI instruction: The student appears confused — they have asked about similar topics (${overlap.slice(0, 3).join(', ')}) before. Please explain more simply with a step-by-step breakdown and a concrete example.]`
+        : content
       const res = await api.post('/api/chat', {
-        message: content,
+        message: apiMessage,
         history,
         context: {
           name: profile?.name,
@@ -170,13 +180,13 @@ export default function ChatTutor() {
           </div>
           <div>
             <div className="font-semibold text-sm text-[#EDEAE4]">CareerRamp AI</div>
-            <div className="flex items-center gap-1.5 text-xs text-indigo-300">
+            <div className="flex items-center gap-1.5 text-xs text-indigo-300" role="status" aria-live="polite">
               <div className={`w-1.5 h-1.5 rounded-full ${streaming ? 'bg-amber-400' : 'bg-indigo-400'} animate-pulse`} />
               {streaming ? 'Typing...' : 'Online'}
             </div>
           </div>
         </div>
-        <button onClick={clearChat} className="text-[#8888aa] hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/5">
+        <button onClick={clearChat} aria-label="Clear chat history" className="text-[#8888aa] hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50">
           <RefreshCw size={14} />
         </button>
       </div>
@@ -188,7 +198,8 @@ export default function ChatTutor() {
             key={i}
             onClick={() => sendMessage(p)}
             disabled={loading || streaming}
-            className="text-[10px] whitespace-nowrap px-3 py-1.5 rounded-full bg-[#1a1a26] border border-white/[0.06] text-[#8888aa] hover:border-amber-500/30 hover:text-amber-400 transition-all flex-shrink-0 disabled:opacity-50"
+            aria-label={`Ask: ${p}`}
+            className="text-[10px] whitespace-nowrap px-3 py-1.5 rounded-full bg-[#1a1a26] border border-white/[0.06] text-[#8888aa] hover:border-amber-500/30 hover:text-amber-400 transition-all flex-shrink-0 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50"
           >
             {p}
           </button>
@@ -219,7 +230,8 @@ export default function ChatTutor() {
           <button
             onClick={() => sendMessage()}
             disabled={!input.trim() || loading || streaming}
-            className="w-10 h-10 rounded-full bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center hover:bg-amber-300 transition-colors flex-shrink-0"
+            aria-label="Send message"
+            className="w-10 h-10 rounded-full bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center hover:bg-amber-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/80 flex-shrink-0"
           >
             {loading
               ? <Loader2 size={15} className="text-[#0a0a0f] animate-spin" />
