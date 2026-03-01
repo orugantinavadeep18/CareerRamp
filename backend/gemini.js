@@ -29,7 +29,7 @@ if (KEYS.length === 0) {
   console.error('❌ No Gemini API keys found. Set GEMINI_API_KEY in backend/.env')
 }
 
-// activeModel is discovered at startup by pingModel(); falls back to first in list
+// activeModel is discovered at startup by pingModel(); exported for health check
 let activeModel = MODELS[0]
 
 /**
@@ -103,4 +103,4 @@ async function pingModel() {
   return Date.now() - t0
 }
 
-module.exports = { generateContent, chatSend, pingModel, MODELS, KEYS }
+module.exports = { generateContent, chatSend, pingModel, MODELS, KEYS, get activeModel() { return activeModel } }

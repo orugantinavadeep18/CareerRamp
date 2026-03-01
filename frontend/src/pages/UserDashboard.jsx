@@ -311,7 +311,9 @@ export default function UserDashboard() {
   const activeGoals = goals.filter(g => !g.completed)
   const doneGoals = goals.filter(g => g.completed)
   const likedSessions = (sessionHistory || []).filter(s => likes.includes(s._id))
-  const topCareer = sessionHistory?.[0]?.careerData?.careerMatches?.[0]
+  // careerData uses topMatches[].career (from analyze.js response)
+  const topCareer = sessionHistory?.[0]?.careerData?.topMatches?.[0]
+                 || sessionHistory?.[0]?.careerData?.careerMatches?.[0]
 
   // ─────────────────────────────────────────────────────────────────────────
   //  RENDERS
@@ -421,7 +423,7 @@ export default function UserDashboard() {
                       <Award size={14} className="text-amber-400" />
                       <p className="text-xs font-semibold text-amber-300 uppercase tracking-widest">Your Top Career Match</p>
                     </div>
-                    <p className="text-lg font-bold">{topCareer.careerName}</p>
+                    <p className="text-lg font-bold">{topCareer.career || topCareer.careerName}</p>
                     <div className="flex items-center gap-3 mt-1">
                       <span className="text-sm text-[#7E7C8E]">{topCareer.matchScore || topCareer.match}% match</span>
                       <button onClick={() => gotoTab('history')} className="text-xs text-amber-400 hover:underline flex items-center gap-1">
@@ -798,11 +800,11 @@ export default function UserDashboard() {
 // ── Sub-components ─────────────────────────────────────────────────────────
 
 function MiniSessionCard({ s, likes, toggleLike, loadSession, deleteSession }) {
-  const match = s.careerData?.careerMatches?.[0]
+  const match = s.careerData?.topMatches?.[0] || s.careerData?.careerMatches?.[0]
   return (
     <div className="flex items-center gap-3 bg-[#0E0E18] border border-white/[0.06] rounded-xl px-4 py-3">
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{s.title || match?.careerName || 'Career Analysis'}</p>
+        <p className="text-sm font-medium truncate">{s.title || match?.career || match?.careerName || 'Career Analysis'}</p>
         <p className="text-[11px] text-[#45434F]">{timeAgo(s.createdAt)}</p>
       </div>
       <div className="flex items-center gap-2">
@@ -817,14 +819,14 @@ function MiniSessionCard({ s, likes, toggleLike, loadSession, deleteSession }) {
 }
 
 function FullSessionCard({ s, likes, toggleLike, loadSession, deleteSession }) {
-  const match = s.careerData?.careerMatches?.[0]
-  const allMatches = s.careerData?.careerMatches?.slice(0, 3) || []
+  const match = s.careerData?.topMatches?.[0] || s.careerData?.careerMatches?.[0]
+  const allMatches = s.careerData?.topMatches?.slice(0, 3) || s.careerData?.careerMatches?.slice(0, 3) || []
   const pct = match?.matchScore || match?.match || 0
   return (
     <div className="card border-white/[0.06] hover:border-white/10 transition-colors">
       <div className="flex items-start gap-3">
         <div className="flex-1 min-w-0">
-          <p className="font-semibold">{s.title || match?.careerName || 'Career Analysis'}</p>
+          <p className="font-semibold">{s.title || match?.career || match?.careerName || 'Career Analysis'}</p>
           <div className="flex flex-wrap gap-1.5 mt-1.5">
             {s.profile?.education && <span className="text-[10px] bg-white/[0.05] border border-white/[0.07] rounded-full px-2 py-0.5 text-[#7E7C8E]">{s.profile.education}</span>}
             {s.profile?.location && <span className="text-[10px] bg-white/[0.05] border border-white/[0.07] rounded-full px-2 py-0.5 text-[#7E7C8E]">{s.profile.location}</span>}
@@ -838,7 +840,7 @@ function FullSessionCard({ s, likes, toggleLike, loadSession, deleteSession }) {
       {allMatches.length > 1 && (
         <div className="flex gap-1.5 mt-3">
           {allMatches.map((m, i) => (
-            <span key={i} className="text-[10px] bg-indigo-400/10 border border-indigo-400/15 rounded-full px-2.5 py-1 text-indigo-300">{m.careerName}</span>
+            <span key={i} className="text-[10px] bg-indigo-400/10 border border-indigo-400/15 rounded-full px-2.5 py-1 text-indigo-300">{m.career || m.careerName}</span>
           ))}
         </div>
       )}

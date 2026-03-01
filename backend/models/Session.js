@@ -17,11 +17,12 @@ const sessionSchema = new mongoose.Schema({
 })
 
 // Auto-generate title from careerData top match
+// careerData uses topMatches[].career (set by analyze.js)
 sessionSchema.pre('save', async function () {
   try {
-    const matches = this.careerData?.careerMatches || []
+    const matches = this.careerData?.topMatches || this.careerData?.careerMatches || []
     if (matches.length > 0) {
-      this.title = matches[0].careerName || 'Career Analysis'
+      this.title = matches[0].career || matches[0].careerName || 'Career Analysis'
     }
   } catch (_) {}
 })

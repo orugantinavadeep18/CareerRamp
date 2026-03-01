@@ -33,7 +33,7 @@ Quiz performance: ${Object.entries(quizScores).map(([k, v]) => `${k}: ${v}%`).jo
 Remaining roadmap: ${currentRoadmap.filter(s => s.status === 'pending').map(s => s.title).join(', ')}
 `;
 
-  const prompt = `You are the SkillForge AI Planning Agent re-evaluating a student's roadmap.
+  const prompt = `You are the CareerRamp AI Planning Agent re-evaluating a student's roadmap.
 
 Target Role: ${role}
 Level: ${level}

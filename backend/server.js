@@ -1,8 +1,8 @@
 // ─────────────────────────────────────────────────────────
-//  SkillForge Backend — server.js
+//  CareerRamp Backend — server.js
 //  Stack: Node.js + Express + Google Gemini
-//  Innovative: AI Agent with visible planning, adaptive
-//  re-planning, step verification, quiz generation
+//  Features: AI career analysis, adaptive roadmap, quiz
+//  verification, history, keep-alive for Render free tier
 // ─────────────────────────────────────────────────────────
 
 const path = require('path');
@@ -91,18 +91,18 @@ app.use('/api/replan', replanRoutes);
 // Root route
 app.get('/', (req, res) => {
   res.json({
-    message: 'SkillForge API is running',
+    message: 'CareerRamp API is running',
     status: 'ok',
     docs: '/api/health',
   });
 });
 
-// Health check
+// Health check — shows the actual working model detected at startup
 app.get('/api/health', (req, res) => {
-  const { MODELS } = require('./gemini')
+  const { activeModel, MODELS } = require('./gemini')
   res.json({
     status: 'running',
-    engine: MODELS[0],
+    engine: activeModel || MODELS[0],
     version: '2.0.0',
     timestamp: new Date().toISOString(),
   });
@@ -127,11 +127,13 @@ mongoose.connect(process.env.MONGODB_URI)
   .catch(err => console.error('  ❌ MongoDB connection failed:', err.message))
 
 app.listen(PORT, async () => {
+  const mStr = MODELS.slice(0, 2).join(', ')
+  const modeStr = process.env.NODE_ENV || 'production'
   console.log(`
 ╔═══════════════════════════════════════════════╗
 ║   CareerRamp AI Backend — Running on :${PORT}    ║
-║   Models : ${MODELS.slice(0,2).join(', ').padEnd(32)}║
-║   Mode   : ${(process.env.NODE_ENV || 'production').padEnd(32)}║
+║   Models : ${mStr.padEnd(32)}║
+║   Mode   : ${modeStr.padEnd(32)}║
 ╚═══════════════════════════════════════════════╝
   `);
 

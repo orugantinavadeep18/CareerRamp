@@ -222,6 +222,18 @@ export function AppProvider({ children }) {
     setFeedbackRatings(prev => ({ ...prev, [careerName]: rating }))
   }, [])
 
+  // ── Step status for RoadmapTimeline ──
+  const [roadmapSteps, setRoadmapSteps] = useState({})
+  const [quizScores, setQuizScores] = useState({})
+
+  const updateStepStatus = useCallback((stepId, status) => {
+    setRoadmapSteps(prev => ({ ...prev, [stepId]: status }))
+  }, [])
+
+  const recordQuizScore = useCallback((stepId, score) => {
+    setQuizScores(prev => ({ ...prev, [stepId]: score }))
+  }, [])
+
   const toggleComparison = useCallback((career) => {
     setComparisonCareers(prev => {
       if (prev.includes(career)) return prev.filter(c => c !== career)
@@ -244,6 +256,8 @@ export function AppProvider({ children }) {
     feedbackRatings, addFeedback,
     comparisonCareers, toggleComparison,
     runAnalysis, sendChat,
+    roadmapSteps, updateStepStatus,
+    quizScores, recordQuizScore,
   }
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
