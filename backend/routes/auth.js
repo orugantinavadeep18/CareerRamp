@@ -37,6 +37,10 @@ router.post('/register', async (req, res) => {
       const msg = Object.values(err.errors).map(e => e.message).join(', ')
       return res.status(400).json({ error: msg })
     }
+    // Handle MongoDB duplicate key error (race condition on same phone)
+    if (err.code === 11000) {
+      return res.status(409).json({ error: 'This phone number is already registered' })
+    }
     console.error('Register error:', err)
     res.status(500).json({ error: 'Registration failed' })
   }
