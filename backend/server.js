@@ -33,8 +33,9 @@ app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (curl, Postman, Render health checks)
     if (!origin) return callback(null, true);
-    // Allow any onrender.com subdomain (deployed frontend)
+    // Allow any onrender.com or vercel.app subdomain (deployed frontends)
     if (origin.endsWith('.onrender.com')) return callback(null, true);
+    if (origin.endsWith('.vercel.app')) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
     callback(new Error('Not allowed by CORS'));
   },
