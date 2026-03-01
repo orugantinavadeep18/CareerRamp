@@ -33,6 +33,9 @@ if (KEYS.length === 0) {
  * @returns {Promise<string>} raw text response
  */
 async function generateContent(prompt, generationConfig = {}) {
+  if (KEYS.length === 0) {
+    throw new Error('No Gemini API keys configured. Add GEMINI_API_KEY to environment variables.')
+  }
   let lastError
   for (let i = 0; i < KEYS.length; i++) {
     try {
@@ -46,7 +49,7 @@ async function generateContent(prompt, generationConfig = {}) {
       console.warn(`  ⚠️  Key #${i + 1} failed (${err.message?.slice(0, 80)}) — ${i + 1 < KEYS.length ? 'trying next key...' : 'no more keys.'}`)
     }
   }
-  throw lastError
+  throw lastError || new Error('All Gemini API keys failed')
 }
 
 /**
@@ -57,6 +60,9 @@ async function generateContent(prompt, generationConfig = {}) {
  * @returns {Promise<string>} assistant reply text
  */
 async function chatSend(chatConfig, userMessage) {
+  if (KEYS.length === 0) {
+    throw new Error('No Gemini API keys configured. Add GEMINI_API_KEY to environment variables.')
+  }
   let lastError
   // systemInstruction must go to getGenerativeModel, not startChat
   const { systemInstruction, ...startChatConfig } = chatConfig
@@ -76,7 +82,7 @@ async function chatSend(chatConfig, userMessage) {
       console.warn(`  ⚠️  Key #${i + 1} failed (${err.message?.slice(0, 80)}) — ${i + 1 < KEYS.length ? 'trying next key...' : 'no more keys.'}`)
     }
   }
-  throw lastError
+  throw lastError || new Error('All Gemini API keys failed')
 }
 
 /**

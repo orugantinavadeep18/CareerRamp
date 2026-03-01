@@ -142,8 +142,10 @@ export default function UserDashboard() {
   // ── Chat state ──────────────────────────────────────────────────────────
   const [chatInput, setChatInput] = useState('')
   const [chatLoading, setChatLoading] = useState(false)
+  const [chatStreaming, setChatStreaming] = useState(false)
+  const chatIntervalRef = useRef(null)
   const [localChat, setLocalChat] = useState([
-    { role: 'ai', content: `Hi ${user?.phone ? formatPhone(user.phone) : 'there'}! 👋 I'm your CareerRamp advisor. Ask me anything about careers, entrance exams, courses, or your assessment results!` }
+    { role: 'ai', content: `Hi ${user?.phone ? formatPhone(user.phone) : 'there'}! 👋 I'm your CareerRamp advisor. Ask me anything about careers, entrance exams, courses, or your assessment results!`, displayed: `Hi ${user?.phone ? formatPhone(user.phone) : 'there'}! 👋 I'm your CareerRamp advisor. Ask me anything about careers, entrance exams, courses, or your assessment results!` }
   ])
   const chatEndRef = useRef(null)
 
@@ -179,6 +181,8 @@ export default function UserDashboard() {
 
   // ── Scroll chat to bottom ───────────────────────────────────────────────
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [localChat])
+  // cleanup typewriter on unmount
+  useEffect(() => () => clearInterval(chatIntervalRef.current), [])
 
   // ── Helpers ─────────────────────────────────────────────────────────────
   const toastId = useRef(0)
@@ -235,16 +239,38 @@ export default function UserDashboard() {
   // ── Chat send ───────────────────────────────────────────────────────────
   const handleSendChat = async () => {
     const msg = chatInput.trim()
-    if (!msg || chatLoading) return
+    if (!msg || chatLoading || chatStreaming) return
     setChatInput('')
-    setLocalChat(p => [...p, { role: 'user', content: msg }])
+    setLocalChat(p => [...p, { role: 'user', content: msg, displayed: msg }])
     setChatLoading(true)
     try {
       const reply = await sendChat(msg)
-      setLocalChat(p => [...p, { role: 'ai', content: reply || "I'm having trouble connecting. Please try again!" }])
+      const fullReply = reply || "I'm having trouble connecting. Please try again!"
+      // Add empty AI message, then typewrite
+      setLocalChat(p => [...p, { role: 'ai', content: fullReply, displayed: '', streaming: true }])
+      setChatLoading(false)
+      setChatStreaming(true)
+      let i = 0
+      chatIntervalRef.current = setInterval(() => {
+        i++
+        setLocalChat(prev => {
+          const updated = [...prev]
+          updated[updated.length - 1] = { ...updated[updated.length - 1], displayed: fullReply.slice(0, i) }
+          return updated
+        })
+        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+        if (i >= fullReply.length) {
+          clearInterval(chatIntervalRef.current)
+          setLocalChat(prev => {
+            const updated = [...prev]
+            updated[updated.length - 1] = { ...updated[updated.length - 1], streaming: false }
+            return updated
+          })
+          setChatStreaming(false)
+        }
+      }, 12)
     } catch {
-      setLocalChat(p => [...p, { role: 'ai', content: "Connection issue. Please try again!" }])
-    } finally {
+      setLocalChat(p => [...p, { role: 'ai', content: 'Connection issue. Please try again!', displayed: 'Connection issue. Please try again!' }])
       setChatLoading(false)
     }
   }
@@ -603,7 +629,12 @@ export default function UserDashboard() {
                           ? 'bg-indigo-500/20 border border-indigo-400/20 text-[#EDEAE4] rounded-tr-sm'
                           : 'bg-[#0E0E18] border border-white/[0.07] text-[#EDEAE4] rounded-tl-sm'
                       }`}>
-                        {m.content}
+                        {m.role === 'ai' ? (
+                          <>
+                            <span dangerouslySetInnerHTML={{ __html: (m.displayed ?? m.content).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>') }} />
+                            {m.streaming && <span className="inline-block w-[2px] h-[13px] bg-amber-400 ml-0.5 align-middle animate-pulse" />}
+                          </>
+                        ) : m.displayed ?? m.content}
                       </div>
                     </div>
                   ))}
@@ -631,9 +662,10 @@ export default function UserDashboard() {
                     onChange={e => setChatInput(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSendChat()}
                     placeholder="Ask about careers, exams, courses..."
+                    disabled={chatLoading || chatStreaming}
                     className="flex-1 input-field py-3"
                   />
-                  <button onClick={handleSendChat} disabled={!chatInput.trim() || chatLoading}
+                  <button onClick={handleSendChat} disabled={!chatInput.trim() || chatLoading || chatStreaming}
                     className="w-11 h-11 rounded-xl bg-amber-400 hover:bg-amber-300 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-colors shrink-0">
                     <Send size={15} className="text-[#08080D]" />
                   </button>
