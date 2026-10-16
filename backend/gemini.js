@@ -74,6 +74,25 @@ async function generateContent(prompt, generationConfig = {}) {
 }
 
 /**
+ * Generate a vector embedding with the same key fallback used for text generation.
+ * @param {string} text
+ * @returns {Promise<number[]>}
+ */
+async function generateEmbedding(text) {
+  const embeddingModel = process.env.GEMINI_EMBEDDING_MODEL || 'gemini-embedding-001'
+  return tryAllCombinations(async (key) => {
+    const genAI = new GoogleGenerativeAI(key)
+    const model = genAI.getGenerativeModel({ model: embeddingModel })
+    const result = await model.embedContent(text)
+    const values = result.embedding?.values
+    if (!Array.isArray(values) || values.length === 0) {
+      throw new Error('Embedding model returned no vector')
+    }
+    return values
+  })
+}
+
+/**
  * Start a Gemini chat session with automatic key×model fallback.
  * @param {object} chatConfig
  * @param {string} userMessage
@@ -103,4 +122,4 @@ async function pingModel() {
   return Date.now() - t0
 }
 
-module.exports = { generateContent, chatSend, pingModel, MODELS, KEYS, get activeModel() { return activeModel } }
+module.exports = { generateContent, generateEmbedding, chatSend, pingModel, MODELS, KEYS, get activeModel() { return activeModel } }

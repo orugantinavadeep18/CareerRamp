@@ -6,6 +6,7 @@ const express = require('express')
 const router = express.Router()
 const { generateContent } = require('../gemini')
 const { analyzeFallback } = require('../demo')
+const { matchCareers } = require('../services/careerMatcher')
 
 router.post('/', async (req, res) => {
   const {
@@ -18,6 +19,24 @@ router.post('/', async (req, res) => {
   } = req.body
 
   if (!education) return res.status(400).json({ error: 'Education level is required.' })
+
+  let semanticMatches = []
+  let retrievedKnowledge = []
+  try {
+    semanticMatches = await matchCareers(req.body)
+    retrievedKnowledge = semanticMatches.map(match => ({
+      title: match.source.title,
+      url: match.source.url,
+      content: match.description,
+      semanticSimilarity: match.semanticSimilarity,
+    }))
+  } catch (embeddingError) {
+    console.error('Semantic retrieval unavailable:', embeddingError.message)
+  }
+
+  const semanticContext = semanticMatches.length
+    ? `\n## Semantic career matching and retrieved knowledge\nThe following careers were ranked using embedding cosine similarity. Preserve this order unless profile constraints clearly require an explanation:\n${semanticMatches.map((match, i) => `${i + 1}. ${match.career} — similarity ${match.semanticSimilarity} (${match.semanticMatchScore}%)`).join('\n')}\n\nRetrieved source context:\n${retrievedKnowledge.map(source => `[${source.title}] ${source.content} Source: ${source.url}`).join('\n')}`
+    : '\n## Semantic matching\nSemantic retrieval was unavailable for this request. Use the profile only and do not invent similarity scores.'
 
   const prompt = `You are CareerRamp AI — an intelligent Career Navigation System designed to democratize career guidance for Indian students. Act like a GPS system for careers: precise, practical, and personalized.
 
@@ -46,6 +65,7 @@ router.post('/', async (req, res) => {
 ### Layer 5 — Career Exposure
 - Fields already aware of: ${careerAwareness.length ? careerAwareness.join(', ') : 'Limited — mostly Engineering/Medicine'}
 - Personal Goal: ${goal || 'Not specified'}
+${semanticContext}
 
 ## Your Mission
 Think step-by-step:
@@ -72,6 +92,8 @@ Respond ONLY with valid JSON (no markdown):
       "career": "Career Name",
       "domain": "Tech|Government|Creative|Business|Skilled Trades|Academic|Emerging",
       "matchScore": 87,
+      "semanticSimilarity": 0.87,
+      "semanticMatchScore": 87,
       "whyFit": "2 sentences explaining exactly how their specific activities, aptitude, and constraints match this career",
       "avgEntrySalary": "₹X–Y LPA",
       "avgMidSalary": "₹X–Y LPA",
@@ -83,6 +105,7 @@ Respond ONLY with valid JSON (no markdown):
       "competitionLevel": "Very High|High|Medium|Low",
       "demandIn5Years": "Surging|High|Stable|Declining",
       "localOpportunities": ["specific opportunity 1 in ${location || 'India'}", "specific opportunity 2"]
+      ,"sources": [{"title": "Retrieved source title", "url": "https://source.example"}]
     }
   ],
   "skillGapAnalysis": {
@@ -169,6 +192,21 @@ Respond ONLY with valid JSON (no markdown):
       } else {
         throw new Error('AI returned invalid JSON — could not extract object')
       }
+    }
+    if (semanticMatches.length && Array.isArray(data.topMatches)) {
+      const byCareer = new Map(semanticMatches.map(match => [match.career, match]))
+      data.topMatches = data.topMatches.map((match, index) => {
+        const evidence = byCareer.get(match.career) || semanticMatches[index]
+        return evidence ? {
+          ...match,
+          matchScore: evidence.semanticMatchScore,
+          semanticSimilarity: evidence.semanticSimilarity,
+          semanticMatchScore: evidence.semanticMatchScore,
+          sources: match.sources?.length ? match.sources : [evidence.source],
+        } : match
+      })
+      data.retrievedSources = retrievedKnowledge.map(({ title, url, semanticSimilarity }) => ({ title, url, semanticSimilarity }))
+      data.matchingMethod = 'Gemini embeddings + cosine similarity + retrieved career knowledge'
     }
     return res.json({ success: true, data })
   } catch (err) {

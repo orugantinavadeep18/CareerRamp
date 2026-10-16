@@ -1,0 +1,110 @@
+[
+  {
+    "career": "Software Developer",
+    "domain": "Tech Careers",
+    "description": "Builds web, mobile, and backend software by applying programming, algorithms, databases, testing, and system design.",
+    "requiredSkills": ["Programming", "Problem solving", "Data structures", "Databases", "Communication"],
+    "interests": ["Coding", "Technology", "Logic", "Building products"],
+    "education": "Computer science, engineering, mathematics, or equivalent practical training",
+    "source": { "title": "CareerRamp curated software development guide", "url": "https://developer.mozilla.org/en-US/docs/Learn" }
+  },
+  {
+    "career": "Data Analyst",
+    "domain": "Tech Careers",
+    "description": "Turns business and public data into insights using statistics, spreadsheets, SQL, Python, dashboards, and data visualization.",
+    "requiredSkills": ["SQL", "Statistics", "Excel", "Data visualization", "Python"],
+    "interests": ["Mathematics", "Research", "Patterns", "Problem solving"],
+    "education": "Statistics, mathematics, economics, computer science, or practical analytics training",
+    "source": { "title": "Kaggle Learn: Data Analytics", "url": "https://www.kaggle.com/learn" }
+  },
+  {
+    "career": "Cybersecurity Analyst",
+    "domain": "Emerging",
+    "description": "Protects systems and data by monitoring threats, investigating incidents, managing vulnerabilities, and applying network security.",
+    "requiredSkills": ["Networking", "Linux", "Security fundamentals", "Incident response", "Attention to detail"],
+    "interests": ["Investigation", "Technology", "Puzzles", "Risk analysis"],
+    "education": "Computer science, information security, networking, or industry certifications",
+    "source": { "title": "NIST NICE Cybersecurity Workforce Framework", "url": "https://www.nist.gov/itl/applied-cybersecurity/nice" }
+  },
+  {
+    "career": "UI/UX Designer",
+    "domain": "Creative",
+    "description": "Researches user needs and designs accessible, useful interfaces through wireframes, prototypes, visual design, and usability testing.",
+    "requiredSkills": ["User research", "Figma", "Visual design", "Prototyping", "Communication"],
+    "interests": ["Design", "Creativity", "Empathy", "Storytelling"],
+    "education": "Design, human-computer interaction, visual communication, or portfolio-based training",
+    "source": { "title": "Google UX Design Certificate", "url": "https://grow.google/certificates/ux-design/" }
+  },
+  {
+    "career": "Cloud Engineer",
+    "domain": "Tech Careers",
+    "description": "Deploys and operates reliable cloud infrastructure using networking, Linux, containers, automation, security, and monitoring.",
+    "requiredSkills": ["Cloud platforms", "Linux", "Networking", "Containers", "Automation"],
+    "interests": ["Infrastructure", "Technology", "Automation", "Systems"],
+    "education": "Computer science, engineering, IT, or cloud certification and hands-on projects",
+    "source": { "title": "Microsoft Learn: Azure fundamentals", "url": "https://learn.microsoft.com/training/azure/" }
+  },
+  {
+    "career": "Digital Marketer",
+    "domain": "Business",
+    "description": "Grows products and organizations through content, social media, search, analytics, campaigns, and customer research.",
+    "requiredSkills": ["Writing", "SEO", "Analytics", "Communication", "Audience research"],
+    "interests": ["Communication", "Creativity", "Business", "People"],
+    "education": "Marketing, communications, business, or portfolio-based digital marketing training",
+    "source": { "title": "Google Digital Marketing resources", "url": "https://learndigital.withgoogle.com/digitalunlocked" }
+  },
+  {
+    "career": "Financial Analyst",
+    "domain": "Business",
+    "description": "Evaluates financial information, budgets, markets, and business performance using accounting, spreadsheets, and quantitative reasoning.",
+    "requiredSkills": ["Accounting", "Excel", "Financial modeling", "Statistics", "Communication"],
+    "interests": ["Numbers", "Business", "Research", "Decision making"],
+    "education": "Commerce, finance, economics, mathematics, or relevant professional training",
+    "source": { "title": "SEBI investor education", "url": "https://investor.sebi.gov.in/" }
+  },
+  {
+    "career": "Teacher and Learning Designer",
+    "domain": "Academic",
+    "description": "Helps learners develop knowledge through explanation, curriculum design, assessment, mentoring, and inclusive teaching practices.",
+    "requiredSkills": ["Subject knowledge", "Communication", "Planning", "Empathy", "Assessment"],
+    "interests": ["Teaching", "People", "Reading", "Social impact"],
+    "education": "Subject degree, education training, or recognized teaching qualification",
+    "source": { "title": "National Council of Educational Research and Training", "url": "https://ncert.nic.in/" }
+  },
+  {
+    "career": "Civil Services Officer",
+    "domain": "Government",
+    "description": "Works on public administration and policy through competitive examinations, analysis, communication, leadership, and service delivery.",
+    "requiredSkills": ["General knowledge", "Writing", "Reasoning", "Public policy", "Leadership"],
+    "interests": ["Society", "Reading", "Leadership", "Public service"],
+    "education": "A recognized bachelor's degree and preparation for the relevant public examination",
+    "source": { "title": "Union Public Service Commission", "url": "https://upsc.gov.in/" }
+  },
+  {
+    "career": "Renewable Energy Technician",
+    "domain": "Skilled Trades",
+    "description": "Installs, tests, and maintains solar, electrical, and energy systems using practical engineering and safety skills.",
+    "requiredSkills": ["Electrical basics", "Safety", "Troubleshooting", "Measurements", "Hands-on work"],
+    "interests": ["Practical work", "Environment", "Engineering", "Machines"],
+    "education": "ITI, diploma, electrical training, or renewable-energy certification",
+    "source": { "title": "Skill India Digital", "url": "https://www.skillindiadigital.gov.in/" }
+  },
+  {
+    "career": "Product Manager",
+    "domain": "Business",
+    "description": "Defines product problems, coordinates teams, researches users, prioritizes features, and measures product outcomes.",
+    "requiredSkills": ["User research", "Communication", "Strategy", "Analytics", "Project management"],
+    "interests": ["Business", "Technology", "Leadership", "Problem solving"],
+    "education": "Any strong analytical or technical background with product and communication experience",
+    "source": { "title": "Atlassian product management guide", "url": "https://www.atlassian.com/agile/product-management" }
+  },
+  {
+    "career": "Healthcare Administrator",
+    "domain": "Academic",
+    "description": "Coordinates healthcare operations, people, records, budgets, quality, and patient services without requiring clinical practice.",
+    "requiredSkills": ["Organization", "Communication", "Healthcare systems", "Data handling", "Leadership"],
+    "interests": ["Healthcare", "People", "Organization", "Social impact"],
+    "education": "Healthcare management, business, life sciences, or related training",
+    "source": { "title": "National Health Authority", "url": "https://www.mohfw.gov.in/" }
+  }
+]

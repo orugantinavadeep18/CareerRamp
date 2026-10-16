@@ -56,6 +56,28 @@ Unlike static career counselling or generic chatbots, CareerRamp **thinks** — 
 | jsonwebtoken + bcryptjs | Auth tokens + password hashing |
 | express-rate-limit | Rate limiting on AI endpoints |
 
+### Semantic matching and RAG upgrade
+
+CareerRamp ranks careers with Gemini embeddings and cosine similarity before asking Gemini to
+generate the explanation and roadmap. It also retrieves matching career knowledge entries and adds
+them to the generation prompt as grounded context. Retrieved source links can be shown with each
+career match in the dashboard.
+
+The initial knowledge base is the curated dataset in
+[`backend/data/careers.json`](./backend/data/careers.json). Embeddings are cached in memory for
+the lifetime of the backend process, so no additional vector database or API provider is required
+for local development. The existing Gemini keys and MongoDB connection remain sufficient.
+
+Add this backend setting to `.env`:
+
+```env
+GEMINI_EMBEDDING_MODEL=gemini-embedding-001
+```
+
+The embedding path uses the same `GEMINI_API_KEY` fallback chain as text generation. If the
+embedding model is unavailable or keys are not configured, analysis continues through the existing
+Gemini/demo fallback path without claiming a semantic score.
+
 ---
 
 ## Core Features
@@ -64,6 +86,8 @@ Unlike static career counselling or generic chatbots, CareerRamp **thinks** — 
 - **4-key Gemini fallback** — if a key hits quota (429), automatically switches to the next key with zero downtime
 - **Self keep-alive bot** — server pings its own `/api/health` every 14 minutes so the Render free tier never sleeps
 - **Profile-aware prompting** — full user context (education, location, activities, financial condition, quiz score, career urgency) is injected into every Gemini prompt
+- **Semantic career matching** — profile and curated career entries are embedded and ranked by cosine similarity before generation
+- **Grounded career context (RAG)** — retrieved career knowledge and source links are injected into analysis and advisor prompts
 - **Quiz-adjusted AI depth** — `basic` / `intermediate` / `advanced` level calculated from quiz score directly changes the complexity of AI explanations and roadmap detail
 - **Adaptive replan** — `/api/replan` lets users request a cheaper, faster, or different variation of their roadmap; Gemini regenerates with the new constraint
 - **Live agent thinking panel** — streams Gemini reasoning steps to the UI in real time

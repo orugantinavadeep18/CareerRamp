@@ -6,6 +6,7 @@ const express = require('express')
 const router = express.Router()
 const { generateContent } = require('../gemini')
 const { chatFallback } = require('../demo')
+const { retrieveKnowledge } = require('../services/careerMatcher')
 
 router.post('/', async (req, res) => {
   const { message, history = [], context } = req.body
@@ -18,6 +19,13 @@ Location: ${context.location || 'India'} | Financial: ${context.financialConditi
 Top career match: ${context.topCareer || 'not yet determined'}
 Skills to learn: ${context.skillGaps?.join(', ') || 'not yet analyzed'}
 ======================` : ''
+  let sourceContext = ''
+  try {
+    const sources = await retrieveKnowledge(context || {}, 3)
+    sourceContext = `\nRetrieved career knowledge (use only when relevant):\n${sources.map(source => `[${source.title}] ${source.content} Source: ${source.url}`).join('\n')}\n`
+  } catch (err) {
+    console.error('Chat retrieval unavailable:', err.message)
+  }
 
   // Build conversation turns as plain text
   const historyText = history.slice(-6).map(m =>
@@ -33,6 +41,7 @@ Rules:
 - Keep answers to 4-5 sentences unless more detail is asked for
 - Cite specific free resources (YouTube channels, websites, government schemes)
 ${profileBlock}
+${sourceContext}
 
 ${historyText ? `Conversation so far:\n${historyText}\n` : ''}Student: ${message}
 CareerRamp AI:`

@@ -1,0 +1,964 @@
+# CareerRamp 
+
+
+### Project presentation document
+
+---
+
+## 1. Project overview
+
+CareerRamp is an AI-powered career guidance platform for Indian students and early-career professionals.
+
+The original system sends a student's profile to Google Gemini and asks it to generate:
+
+- Career recommendations
+- Skill-gap analysis
+- Learning roadmaps
+- Salary comparisons
+- Personalized career advice
+
+The NLP upgrade adds an evidence-based semantic matching layer:
+
+1. Convert the student's profile into an embedding.
+2. Convert each career description into an embedding.
+3. Compare embeddings using cosine similarity.
+4. Rank careers by semantic similarity.
+5. Retrieve the knowledge associated with the best careers.
+6. Give the profile, ranked careers, and retrieved knowledge to Gemini.
+7. Generate a grounded and personalized career report.
+
+The upgraded architecture is:
+
+```text
+Student profile
+      |
+      v
+Profile text construction
+      |
+      v
+Student embedding
+      |
+      v
+Cosine similarity with career embeddings
+      |
+      v
+Ranked career matches
+      |
+      v
+Retrieve relevant career knowledge and sources
+      |
+      v
+Gemini grounded generation
+      |
+      v
+Personalized career report
+```
+
+---
+
+## 2. What is an embedding?
+
+An embedding is a numerical representation of text.
+
+Instead of treating a sentence as only a sequence of words, an embedding model converts its meaning into a vector:
+
+```text
+"I enjoy coding and solving mathematical problems"
+
+becomes something like:
+
+[0.12, -0.44, 0.73, 0.08, 0.31, ...]
+```
+
+The actual vector contains many dimensions. Each dimension captures part of the language pattern learned by the model. We do not normally interpret one individual dimension. The complete vector represents the meaning of the text.
+
+Texts with similar meanings tend to have vectors pointing in similar directions.
+
+### Example
+
+```text
+Text A: "I like programming and building applications."
+Text B: "I enjoy writing code and creating software."
+```
+
+Although the exact words are different, the meanings are similar. Their embeddings should therefore be close to each other.
+
+```text
+Embedding A: [0.20, 0.70, 0.10, ...]
+Embedding B: [0.22, 0.68, 0.12, ...]
+```
+
+By comparison:
+
+```text
+Text C: "I enjoy painting and visual design."
+```
+
+would usually have a more different embedding because it describes a different interest.
+
+---
+
+## 3. How embedding methods work internally
+
+There are two useful ways to understand text representations:
+
+1. Frequency-based methods
+2. Prediction-based methods
+
+Modern embedding APIs such as Gemini embeddings use neural, prediction-based methods. Frequency-based methods are still important because they explain traditional NLP and provide useful baselines.
+
+---
+
+## 4. Frequency-based text representation
+
+Frequency-based methods represent text by counting how often words occur.
+
+They do not deeply understand meaning. They measure the importance of words based on their occurrence patterns.
+
+### 4.1 Bag of Words
+
+Suppose we have these sentences:
+
+```text
+Document 1: "student likes coding"
+Document 2: "student likes design"
+```
+
+The vocabulary is:
+
+```text
+["student", "likes", "coding", "design"]
+```
+
+The sentences can be represented as:
+
+```text
+Document 1: [1, 1, 1, 0]
+Document 2: [1, 1, 0, 1]
+```
+
+Each number indicates whether a vocabulary word appears.
+
+The limitations are:
+
+- Word order is ignored.
+- Synonyms are treated as unrelated.
+- "coding" and "programming" are different features.
+- Context and meaning are not understood.
+
+### 4.2 Term Frequency
+
+Term Frequency, or TF, measures how often a word occurs in one document.
+
+```text
+TF(word, document) =
+number of times the word appears
+/
+total number of words in the document
+```
+
+If a document has 10 words and "Python" appears twice:
+
+```text
+TF(Python) = 2 / 10 = 0.2
+```
+
+### 4.3 Inverse Document Frequency
+
+Inverse Document Frequency, or IDF, reduces the importance of words that appear in many documents.
+
+```text
+IDF(word) =
+log(total number of documents
+/
+number of documents containing the word)
+```
+
+Words such as "the", "student", or "career" may occur everywhere and are less useful for identifying a specific career.
+
+Rare terms such as "SQL", "cybersecurity", or "Figma" may be more informative.
+
+### 4.4 TF-IDF
+
+TF-IDF combines term frequency and inverse document frequency:
+
+```text
+TF-IDF(word, document) = TF(word, document) × IDF(word)
+```
+
+Example:
+
+```text
+Document: "Python SQL dashboard Python"
+```
+
+If Python occurs frequently and SQL is relatively rare across the collection, both may receive high scores.
+
+TF-IDF is useful in CareerRamp for:
+
+- Extracting important resume keywords
+- Identifying skills in career descriptions
+- Creating a simple keyword-based matching baseline
+- Explaining which words caused a match
+
+### 4.5 Frequency-based limitation
+
+Consider:
+
+```text
+Sentence A: "I want to develop software."
+Sentence B: "I want to build applications."
+```
+
+The words are different, but the meaning is similar. TF-IDF may not recognize the semantic relationship because it mainly compares exact word overlap.
+
+This is why CareerRamp uses embeddings for semantic matching.
+
+---
+
+## 5. Prediction-based embeddings
+
+Prediction-based methods learn language patterns by predicting words from context or predicting context from words.
+
+The model is trained on a large amount of text. During training, it repeatedly sees examples such as:
+
+```text
+"The student writes ___ using Python."
+```
+
+The likely missing word might be:
+
+```text
+code
+```
+
+The model adjusts its internal parameters so that words used in similar contexts develop related representations.
+
+### 5.1 Word-context example
+
+During training, these words may appear in similar contexts:
+
+```text
+Python, JavaScript, Java, programming, software
+```
+
+The model learns that they are related to programming and technology.
+
+These words may appear in different contexts:
+
+```text
+painting, illustration, typography, color
+```
+
+The model learns that they are related to design and visual creativity.
+
+### 5.2 From words to sentences
+
+Modern embedding models do more than average word vectors. They use neural transformer layers to consider:
+
+- Word meaning
+- Word order
+- Surrounding context
+- Relationships between phrases
+- The complete sentence or document
+
+For example:
+
+```text
+"I want to learn Python for data analysis."
+"I want to analyze data using Python."
+```
+
+The model can recognize that these sentences express almost the same idea even though their word order differs.
+
+### 5.3 High-level embedding process
+
+Internally, a prediction-based model generally performs a process similar to this:
+
+```text
+Raw text
+   |
+   v
+Tokenization
+   |
+   v
+Token IDs
+   |
+   v
+Neural transformer layers
+   |
+   v
+Context-aware representation
+   |
+   v
+Fixed-size embedding vector
+```
+
+The model is trained by minimizing prediction errors. The learned representation is then reused for tasks such as:
+
+- Similarity search
+- Recommendation
+- Classification
+- Clustering
+- Retrieval
+
+### 5.4 Important clarification
+
+The CareerRamp backend does not train an embedding model from scratch. It calls the Gemini embedding API:
+
+```env
+GEMINI_EMBEDDING_MODEL=gemini-embedding-001
+```
+
+The trained model is hosted by Google. CareerRamp sends text to the API and receives a vector.
+
+---
+
+## 6. CareerRamp profile embedding
+
+When a user submits the onboarding form, CareerRamp combines the fields into a meaningful text representation.
+
+### Example user input
+
+```text
+Name: Ananya
+Education: B.Tech
+Stream: Computer Science
+Location: Hyderabad
+Activities: Coding, mathematics, solving puzzles
+Preferences: Analytical work, technology
+Quiz score: 8/10
+Quiz level: Advanced
+Goal: Get a data-related job
+Financial condition: Moderate
+```
+
+### Profile text sent for embedding
+
+```text
+Education: B.Tech, Computer Science
+Location: Hyderabad
+Activities: Coding, mathematics, solving puzzles
+Work preferences: Analytical work, technology
+Quiz level: advanced with score 8/10
+Financial condition: Moderate
+Job timeline: Flexible
+Career awareness: Limited
+Goal: Get a data-related job
+```
+
+This text is passed to the Gemini embedding model:
+
+```text
+Profile text
+     |
+     v
+Gemini embedding model
+     |
+     v
+Student profile vector
+```
+
+The implementation is located in:
+
+```text
+backend/services/profileText.js
+backend/gemini.js
+```
+
+---
+
+## 7. Career knowledge embeddings
+
+CareerRamp contains structured career entries in:
+
+```text
+backend/data/careers.json
+```
+
+### Example career entry
+
+```json
+{
+  "career": "Data Analyst",
+  "domain": "Tech Careers",
+  "description": "Turns business and public data into insights using statistics, spreadsheets, SQL, Python, dashboards, and data visualization.",
+  "requiredSkills": [
+    "SQL",
+    "Statistics",
+    "Excel",
+    "Data visualization",
+    "Python"
+  ],
+  "interests": [
+    "Mathematics",
+    "Research",
+    "Patterns",
+    "Problem solving"
+  ],
+  "education": "Statistics, mathematics, economics, computer science, or practical analytics training"
+}
+```
+
+The backend combines the career fields into text:
+
+```text
+Career: Data Analyst
+Domain: Tech Careers
+Description: Turns business and public data into insights using statistics, spreadsheets, SQL, Python, dashboards, and data visualization.
+Required skills: SQL, Statistics, Excel, Data visualization, Python
+Interests: Mathematics, Research, Patterns, Problem solving
+Education: Statistics, mathematics, economics, computer science, or practical analytics training
+```
+
+That text is embedded in the same way as the student profile.
+
+The career embeddings are cached in memory. Therefore, after a career has been embedded once, the backend reuses it during the current server process.
+
+The implementation is located in:
+
+```text
+backend/services/careerMatcher.js
+backend/services/profileText.js
+```
+
+---
+
+## 8. What is cosine similarity?
+
+Cosine similarity measures the angle between two vectors.
+
+It asks:
+
+> Are these two vectors pointing in a similar direction?
+
+The formula is:
+
+```text
+cosine similarity(A, B) =
+           A · B
+    -------------------
+    ||A|| × ||B||
+```
+
+Where:
+
+- `A · B` is the dot product.
+- `||A||` is the length, or magnitude, of vector A.
+- `||B||` is the length of vector B.
+
+The result is usually between `-1` and `1`:
+
+```text
+1     = same direction, highly similar
+0     = unrelated direction
+-1    = opposite direction
+```
+
+For text embeddings, scores are commonly positive and are interpreted as semantic similarity.
+
+---
+
+## 9. Cosine similarity example
+
+Use two simple two-dimensional vectors:
+
+```text
+A = [1, 0]
+B = [1, 0]
+```
+
+Dot product:
+
+```text
+A · B = (1 × 1) + (0 × 0) = 1
+```
+
+Vector lengths:
+
+```text
+||A|| = 1
+||B|| = 1
+```
+
+Cosine similarity:
+
+```text
+1 / (1 × 1) = 1
+```
+
+The vectors are identical.
+
+Now compare:
+
+```text
+A = [1, 0]
+C = [0, 1]
+```
+
+Dot product:
+
+```text
+A · C = (1 × 0) + (0 × 1) = 0
+```
+
+Cosine similarity:
+
+```text
+0
+```
+
+The vectors point in perpendicular directions.
+
+### Career example
+
+Suppose the profile embedding and Data Analyst embedding produce:
+
+```text
+cosine similarity = 0.91
+```
+
+The application displays:
+
+```text
+Semantic match = 91%
+```
+
+This does not mean that the student is guaranteed to succeed. It means that the meaning of the profile is highly aligned with the meaning of the career description.
+
+The implementation is located in:
+
+```text
+backend/services/similarity.js
+```
+
+---
+
+## 10. Full semantic matching workflow
+
+### Step 1: User enters profile information
+
+The user completes the existing onboarding flow.
+
+```text
+Education: B.Tech Computer Science
+Activities: coding, mathematics, puzzles
+Preferences: analytical work
+Goal: data-related job
+```
+
+### Step 2: Frontend sends the profile
+
+The frontend calls:
+
+```text
+POST /api/analyze
+```
+
+### Step 3: Backend builds profile text
+
+The profile fields are converted into a coherent text block.
+
+### Step 4: Gemini generates the profile embedding
+
+The text is converted into a numerical vector.
+
+### Step 5: Backend loads career entries
+
+CareerRamp reads the curated career knowledge base.
+
+### Step 6: Gemini generates career embeddings
+
+Each career description is converted into a vector. The result is cached in memory.
+
+### Step 7: Cosine similarity is calculated
+
+The student vector is compared with every career vector.
+
+Example:
+
+```text
+Data Analyst          0.91
+Software Developer    0.87
+Cybersecurity Analyst 0.82
+Financial Analyst     0.78
+UI/UX Designer        0.55
+```
+
+### Step 8: Careers are ranked
+
+The highest similarity scores become the initial career ranking.
+
+### Step 9: Relevant knowledge is retrieved
+
+The top career entries provide:
+
+- Career description
+- Required skills
+- Relevant interests
+- Education information
+- Source title
+- Source URL
+
+### Step 10: Gemini receives grounded context
+
+The final Gemini prompt contains:
+
+1. The complete student profile
+2. The semantic career ranking
+3. Retrieved career knowledge
+4. Instructions to explain the result and create a roadmap
+
+### Step 11: Gemini generates the report
+
+Gemini creates:
+
+- `whyFit`
+- Skill-gap analysis
+- Roadmap
+- Salary comparison
+- Market demand
+- Local opportunities
+- Personalized advice
+
+### Step 12: Frontend displays the result
+
+The user sees:
+
+```text
+Data Analyst
+91% match
+Semantic match 91% · ranked from career knowledge
+Evidence: Kaggle Learn: Data Analytics
+```
+
+---
+
+## 11. How RAG works in CareerRamp
+
+RAG means Retrieval-Augmented Generation.
+
+It combines:
+
+1. Retrieval: finding relevant information
+2. Augmentation: adding that information to the prompt
+3. Generation: asking Gemini to generate the answer using the context
+
+### Without RAG
+
+```text
+Student question
+      |
+      v
+Gemini general knowledge
+      |
+      v
+Answer
+```
+
+### With RAG
+
+```text
+Student question/profile
+      |
+      v
+Find relevant career knowledge
+      |
+      v
+Add retrieved knowledge to prompt
+      |
+      v
+Gemini generates a grounded answer
+```
+
+### Example
+
+User asks:
+
+```text
+What should I learn to become a data analyst?
+```
+
+CareerRamp retrieves:
+
+```text
+Data Analyst required skills:
+SQL, statistics, Excel, Python, data visualization.
+
+Source:
+Kaggle Learn: Data Analytics
+```
+
+Gemini receives the question and this context:
+
+```text
+Use the following retrieved career knowledge:
+Data Analyst requires SQL, statistics, Excel, Python, and data visualization.
+Source: https://www.kaggle.com/learn
+
+Student question:
+What should I learn to become a data analyst?
+```
+
+The generated answer is more relevant because it is based on the retrieved career information.
+
+### Current RAG implementation
+
+The current version uses:
+
+```text
+Local careers.json
++ Gemini embeddings
++ Cosine similarity
++ In-memory cache
++ Source metadata
+```
+
+It does not yet use MongoDB Atlas Vector Search. The existing MongoDB connection is still used for users and saved sessions.
+
+---
+
+## 12. How the final Gemini prompt is formed
+
+The final prompt combines three categories of information.
+
+### Profile context
+
+```text
+Education: B.Tech Computer Science
+Activities: coding, mathematics, puzzles
+Goal: get a data-related job
+```
+
+### Semantic ranking
+
+```text
+1. Data Analyst — similarity 0.91
+2. Software Developer — similarity 0.87
+3. Cybersecurity Analyst — similarity 0.82
+```
+
+### Retrieved evidence
+
+```text
+Data Analyst requires SQL, statistics, Excel, Python, and visualization.
+Relevant interests include mathematics, research, patterns, and problem solving.
+Source: Kaggle Learn.
+```
+
+Gemini then receives an instruction such as:
+
+```text
+Use the semantic ranking and retrieved context as evidence.
+Explain why the careers fit this specific student.
+Generate a skill-gap analysis and personalized roadmap.
+Return the requested JSON structure.
+```
+
+This separates the responsibilities:
+
+```text
+Embedding model: represents meaning
+Cosine similarity: ranks semantic closeness
+Retriever: provides relevant evidence
+Gemini: explains and personalizes the result
+```
+
+---
+
+## 13. What the user sees versus what happens internally
+
+### User sees
+
+1. Complete onboarding.
+2. Submit the assessment.
+3. Wait while the analysis is generated.
+4. View career matches and roadmaps.
+5. Ask questions in the AI advisor.
+6. Open source links shown on career cards.
+
+### System performs internally
+
+1. Builds profile text.
+2. Calls the embedding model.
+3. Creates or reuses career embeddings.
+4. Calculates cosine similarity.
+5. Sorts the career matches.
+6. Retrieves matching career knowledge.
+7. Builds a grounded Gemini prompt.
+8. Parses Gemini's JSON response.
+9. Displays semantic scores and evidence.
+
+The user does not need to manually interact with vectors or similarity formulas.
+
+---
+
+## 14. Example end-to-end result
+
+### Input
+
+```text
+Student: Ananya
+Education: B.Tech Computer Science
+Activities: Coding, mathematics, puzzles
+Preferences: Analytical work
+Quiz score: 8/10
+Goal: Get a data-related job
+```
+
+### Semantic matching result
+
+```json
+[
+  {
+    "career": "Data Analyst",
+    "semanticSimilarity": 0.91,
+    "semanticMatchScore": 91
+  },
+  {
+    "career": "Software Developer",
+    "semanticSimilarity": 0.87,
+    "semanticMatchScore": 87
+  },
+  {
+    "career": "Cybersecurity Analyst",
+    "semanticSimilarity": 0.82,
+    "semanticMatchScore": 82
+  }
+]
+```
+
+### Generated result shown to the user
+
+```text
+Data Analyst — 91% match
+
+Why this fits:
+Your interest in mathematics, coding, and problem solving aligns with the
+analytical work required in data analysis.
+
+Skills to learn:
+SQL, statistics, Excel, Python, and data visualization.
+
+Recommended first action:
+Learn basic SQL and complete a small data dashboard project.
+
+Evidence:
+Kaggle Learn: Data Analytics
+```
+
+---
+
+## 15. Error handling and fallback behavior
+
+The application does not show a fake semantic score if embeddings fail.
+
+### If the embedding API works
+
+```text
+Embedding ranking
+      |
+      v
+Retrieved context
+      |
+      v
+Gemini grounded report
+```
+
+### If the embedding API fails
+
+```text
+Embedding error logged
+      |
+      v
+Normal Gemini analysis continues
+      |
+      v
+No semantic score is displayed
+```
+
+The Gemini key fallback mechanism tries the configured keys in order.
+
+Required setting:
+
+```env
+GEMINI_EMBEDDING_MODEL=gemini-embedding-001
+```
+
+The embedding feature uses the existing Gemini API keys. No separate embedding provider is required.
+
+---
+
+## 16. Important limitations
+
+The current upgrade is a focused semantic matching and local RAG implementation.
+
+It currently does not include:
+
+- Resume upload
+- PDF or DOCX text extraction
+- Named Entity Recognition
+- TF-IDF keyword extraction
+- MongoDB Atlas Vector Search
+- Automatic web crawling
+- A large external document collection
+- Formal answer faithfulness evaluation
+
+The local dataset should be expanded and reviewed before using the system for high-stakes decisions such as admissions, government eligibility, or financial planning.
+
+---
+
+## 17. Files involved in the implementation
+
+### Backend
+
+```text
+backend/gemini.js
+backend/services/similarity.js
+backend/services/profileText.js
+backend/services/careerMatcher.js
+backend/data/careers.json
+backend/routes/analyze.js
+backend/routes/chat.js
+backend/.env.example
+```
+
+### Frontend
+
+```text
+frontend/src/components/CareerMatchCard.jsx
+```
+
+### Documentation
+
+```text
+README.md
+NLP PPT Doc.md
+```
+
+---
+
+## 18. Presentation summary
+
+### Problem
+
+Generic career advice does not sufficiently consider each student's background, interests, skills, and constraints.
+
+### NLP solution
+
+Use embeddings to represent the meaning of the student profile and career descriptions. Use cosine similarity to identify the closest career paths. Retrieve supporting career knowledge and give it to Gemini before generation.
+
+### Benefit
+
+Career recommendations become:
+
+- More semantically relevant
+- More explainable
+- Better aligned with user interests
+- Supported by retrieved career information
+- Easier to extend with new career documents
+
+### One-line explanation
+
+> CareerRamp converts a student's profile and career descriptions into semantic vectors, ranks them with cosine similarity, retrieves relevant career evidence, and uses Gemini to generate a personalized grounded roadmap.
+

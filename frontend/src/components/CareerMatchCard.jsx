@@ -1,4 +1,4 @@
-import { TrendingUp, AlertTriangle, DollarSign, Clock, PlusCircle, MinusCircle } from 'lucide-react'
+import { TrendingUp, AlertTriangle, DollarSign, Clock, PlusCircle, MinusCircle, ExternalLink } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 
 const DOMAIN_COLORS = {
@@ -52,6 +52,11 @@ export default function CareerMatchCard({ career, rank }) {
             {career.domain}
           </span>
           <p className="text-[#7E7C8E] text-sm mt-2.5 leading-relaxed line-clamp-2">{career.whyFit}</p>
+          {career.semanticSimilarity !== undefined && (
+            <p className="text-[10px] text-emerald-400/80 mt-2">
+              Semantic match {Math.round(career.semanticSimilarity * 100)}% · ranked from career knowledge
+            </p>
+          )}
         </div>
         {/* Score Arc */}
         <div className="shrink-0 scale-75 sm:scale-100 origin-top-right -mt-1 -mr-1 sm:mt-0 sm:mr-0">
@@ -97,6 +102,18 @@ export default function CareerMatchCard({ career, rank }) {
               <span key={i} className="text-[11px] bg-[#0E0E18] text-[#7E7C8E] px-2.5 py-0.5 rounded-full border border-white/[0.07]">{op}</span>
             ))}
           </div>
+        </div>
+      )}
+
+      {career.sources?.length > 0 && (
+        <div className="mt-3.5 pt-3.5 border-t border-white/[0.06]">
+          <p className="text-[10px] text-[#45434F] font-semibold tracking-widest uppercase mb-2">Evidence</p>
+          {career.sources.slice(0, 2).map((source, i) => (
+            <a key={`${source.url}-${i}`} href={source.url} target="_blank" rel="noreferrer"
+              className="flex items-center gap-1.5 text-[11px] text-sky-300 hover:text-sky-200 truncate">
+              <ExternalLink size={10} /> <span className="truncate">{source.title}</span>
+            </a>
+          ))}
         </div>
       )}
 
