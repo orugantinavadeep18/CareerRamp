@@ -86,6 +86,11 @@ Think step-by-step:
 4. Suggest careers BEYOND just Engineering/Medicine that this student may not know
 5. Provide localized opportunities for ${location || 'their state'}
 6. Predict 5-year market demand
+7. Build one clear, sequential roadmap for the top career. It must contain exactly 6 ordered phases:
+   Foundation → Core Skills → Guided Project → Portfolio Project → Job Readiness → Applications.
+   Each phase must depend on the previous phase, use 2-4 concrete weekly actions, and end with one
+   measurable deliverable. Do not mix advanced topics into the foundation phase or present alternatives
+   without choosing one primary path. Adapt duration and cost to the student's profile.
 
 Respond ONLY with valid JSON (no markdown):
 
@@ -128,10 +133,15 @@ Respond ONLY with valid JSON (no markdown):
   },
   "roadmap": [
     {
+      "step": 1,
+      "phase": "Foundation",
       "month": "Month 1",
-      "focus": "Core topic/skill to study",
-      "tasks": ["specific task 1", "specific task 2", "specific task 3"],
-      "milestone": "Concrete achievement by end of this month",
+      "objective": "What the student will be able to do",
+      "focus": "One core topic or skill to study",
+      "prerequisite": "None",
+      "tasks": ["Specific action 1", "Specific action 2", "Specific action 3"],
+      "deliverable": "A concrete project or proof of ability",
+      "milestone": "Measurable completion check",
       "resources": ["Free resource 1", "Platform/Course 2"]
     }
   ],
@@ -203,6 +213,16 @@ Respond ONLY with valid JSON (no markdown):
       } else {
         throw new Error('AI returned invalid JSON — could not extract object')
       }
+    }
+    if (Array.isArray(data.roadmap)) {
+      data.roadmap = data.roadmap.slice(0, 6).map((item, index) => ({
+        ...item,
+        step: item.step || index + 1,
+        phase: item.phase || `Phase ${index + 1}`,
+        objective: item.objective || item.focus || 'Build the next career skill',
+        prerequisite: item.prerequisite || (index === 0 ? 'None — start here' : `Complete Phase ${index} first`),
+        deliverable: item.deliverable || item.milestone || 'Complete the milestone and keep evidence of your work',
+      }))
     }
     if (semanticMatches.length && Array.isArray(data.topMatches)) {
       const byCareer = new Map(semanticMatches.map(match => [match.career, match]))

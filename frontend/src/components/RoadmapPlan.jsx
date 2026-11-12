@@ -31,7 +31,9 @@ export default function RoadmapPlan({ roadmap = [] }) {
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs text-amber-400/80 font-semibold">{item.month}</p>
+                    <p className="text-xs text-amber-400/80 font-semibold">
+                      Step {item.step || idx + 1} · {item.phase || item.month}
+                    </p>
                     <h4 className="font-semibold text-[#EDEAE4] mt-0.5">{item.focus}</h4>
                   </div>
                   <div className={`text-[#45434F] transition-transform text-xs ${idx === expanded ? 'rotate-180' : ''}`}>▼</div>
@@ -39,6 +41,16 @@ export default function RoadmapPlan({ roadmap = [] }) {
 
                 {idx === expanded && (
                     <div className="mt-3 pt-3 border-t border-white/[0.06] animate-fade-up space-y-3">
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <div className="rounded-xl bg-indigo-400/[0.06] border border-indigo-400/15 p-3">
+                        <p className="text-[10px] text-indigo-300 font-semibold tracking-widest uppercase mb-1">Objective</p>
+                        <p className="text-sm text-[#EDEAE4]">{item.objective || item.focus}</p>
+                      </div>
+                      <div className="rounded-xl bg-[#0E0E18] border border-white/[0.07] p-3">
+                        <p className="text-[10px] text-[#8888aa] font-semibold tracking-widest uppercase mb-1">Prerequisite</p>
+                        <p className="text-sm text-[#EDEAE4]">{item.prerequisite || (idx === 0 ? 'None — start here' : `Complete Step ${idx} first`)}</p>
+                      </div>
+                    </div>
                     {/* Tasks */}
                     <div>
                       <p className="text-[10px] text-[#45434F] font-semibold tracking-widest uppercase mb-2">Tasks</p>
@@ -59,6 +71,15 @@ export default function RoadmapPlan({ roadmap = [] }) {
                         <div>
                           <p className="text-[10px] text-amber-400/80 font-semibold tracking-widest uppercase mb-0.5">Milestone</p>
                           <p className="text-sm text-[#EDEAE4]">{item.milestone}</p>
+                        </div>
+                      </div>
+                    )}
+                    {item.deliverable && (
+                      <div className="flex items-start gap-2.5 bg-indigo-400/[0.05] border border-indigo-400/15 rounded-xl p-3">
+                        <CheckCircle size={14} className="text-indigo-300 mt-0.5 shrink-0" />
+                        <div>
+                          <p className="text-[10px] text-indigo-300 font-semibold tracking-widest uppercase mb-0.5">Deliverable</p>
+                          <p className="text-sm text-[#EDEAE4]">{item.deliverable}</p>
                         </div>
                       </div>
                     )}
