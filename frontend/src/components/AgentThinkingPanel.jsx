@@ -36,7 +36,7 @@ export default function AgentThinkingPanel({ className = '' }) {
           <Sparkles size={14} className="text-amber-400" />
         </div>
         <div>
-          <div className="text-sm font-semibold text-[#EDEAE4] tracking-tight">Gemini is analyzing</div>
+          <div className="text-sm font-semibold text-[#EDEAE4] tracking-tight">Building your career analysis</div>
           <div className="flex items-center gap-1.5 text-xs text-[#45434F] mt-0.5">
             {statusIcon[agentStatus]}
             <span>{statusLabel[agentStatus]}</span>

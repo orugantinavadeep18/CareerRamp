@@ -219,6 +219,10 @@ Respond ONLY with valid JSON (no markdown):
       data.retrievedSources = retrievedKnowledge.map(({ title, url, semanticSimilarity }) => ({ title, url, semanticSimilarity }))
       data.matchingMethod = 'Gemini embeddings + cosine similarity + retrieved career knowledge'
     }
+    data.modelRoleEvidence = modelRoles
+    data.matchingMethod = semanticMatches.length
+      ? 'Career evidence model + Gemini embeddings + cosine similarity + retrieved career knowledge'
+      : 'Career evidence model + Gemini profile analysis'
     return res.json({ success: true, data })
   } catch (err) {
     console.error('Analyze error:', err.message, '— serving demo fallback')
