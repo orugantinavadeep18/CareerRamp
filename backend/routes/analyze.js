@@ -7,6 +7,7 @@ const router = express.Router()
 const { generateContent } = require('../gemini')
 const { analyzeFallback } = require('../demo')
 const { matchCareers } = require('../services/careerMatcher')
+const { predictCareerRoles } = require('../services/careerModel')
 
 router.post('/', async (req, res) => {
   const {
@@ -22,6 +23,7 @@ router.post('/', async (req, res) => {
 
   let semanticMatches = []
   let retrievedKnowledge = []
+  let modelRoles = []
   try {
     semanticMatches = await matchCareers(req.body)
     retrievedKnowledge = semanticMatches.map(match => ({
@@ -33,10 +35,18 @@ router.post('/', async (req, res) => {
   } catch (embeddingError) {
     console.error('Semantic retrieval unavailable:', embeddingError.message)
   }
+  try {
+    modelRoles = predictCareerRoles(req.body)
+  } catch (modelError) {
+    console.error('Career evidence model unavailable:', modelError.message)
+  }
 
   const semanticContext = semanticMatches.length
     ? `\n## Semantic career matching and retrieved knowledge\nThe following careers were ranked using embedding cosine similarity. Preserve this order unless profile constraints clearly require an explanation:\n${semanticMatches.map((match, i) => `${i + 1}. ${match.career} — similarity ${match.semanticSimilarity} (${match.semanticMatchScore}%)`).join('\n')}\n\nRetrieved source context:\n${retrievedKnowledge.map(source => `[${source.title}] ${source.content} Source: ${source.url}`).join('\n')}`
     : '\n## Semantic matching\nSemantic retrieval was unavailable for this request. Use the profile only and do not invent similarity scores.'
+  const modelContext = modelRoles.length
+    ? `\n## Historical career evidence model\nA TF-IDF logistic-regression model trained on two Kaggle career datasets provides supporting role evidence. Use it as a secondary signal, not as a guarantee:\n${modelRoles.map((item, index) => `${index + 1}. ${item.role} — evidence ${item.score} (${item.trainingExamples} training examples)`).join('\n')}`
+    : '\n## Historical career evidence model\nThe evidence model was unavailable. Do not invent model scores.'
 
   const prompt = `You are CareerRamp AI — an intelligent Career Navigation System designed to democratize career guidance for Indian students. Act like a GPS system for careers: precise, practical, and personalized.
 
@@ -66,6 +76,7 @@ router.post('/', async (req, res) => {
 - Fields already aware of: ${careerAwareness.length ? careerAwareness.join(', ') : 'Limited — mostly Engineering/Medicine'}
 - Personal Goal: ${goal || 'Not specified'}
 ${semanticContext}
+${modelContext}
 
 ## Your Mission
 Think step-by-step:

@@ -78,6 +78,24 @@ The embedding path uses the same `GEMINI_API_KEY` fallback chain as text generat
 embedding model is unavailable or keys are not configured, analysis continues through the existing
 Gemini/demo fallback path without claiming a semantic score.
 
+### Trained career-role evidence model
+
+The analysis route also uses `backend/ml/career_model.json`, a compact TF-IDF plus logistic
+regression model trained from two public Kaggle datasets: the Career Recommendation Dataset
+(graduate interests, skills, education, and job titles) and the Student Career Dataset
+(technical-student attributes and suggested roles). The first dataset expands the vocabulary;
+the second supplies the consistent 34-role target labels. The model is a supporting signal only:
+Gemini embeddings, the curated career knowledge base, and user constraints remain authoritative.
+
+Raw Kaggle files are not committed. To retrain, install `backend/ml/requirements.txt` and run:
+
+```powershell
+python backend\ml\train_career_model.py `
+  --first C:\path\to\career_recommender.csv `
+  --second C:\path\to\PaperDataset.csv `
+  --output backend\ml\career_model.json
+```
+
 ---
 
 ## Core Features
